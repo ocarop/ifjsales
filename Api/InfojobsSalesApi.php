@@ -116,10 +116,14 @@ class InfojobsSalesApi extends CrmApi {
 
         if (!empty($response['records'])) {
             //Recorrer todos los contactos del Account
+            $found=false;
             foreach ($response['records'] as $record) {
                 //Evaluar los criterios de matching
                 if ($record['Name'] == 'John Smith') {
-                    $sfRecords['Contact'] = $record;
+                    if (!found){
+                        $sfRecords['Contact'] = $record;
+                        $found=true;
+                    }    
                 }
             }
         }
