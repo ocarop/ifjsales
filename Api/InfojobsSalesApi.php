@@ -114,9 +114,9 @@ class InfojobsSalesApi extends CrmApi {
         $findContact = 'SELECT Id, Name, FirstName, SegundoApellido__c FROM Contact where Account.Id = \'0014E00000euM53\'';
         $response = $this->request('query', ['q' => $findContact], 'GET', false, null, $queryUrl);
 
+        $found=false;
         if (!empty($response['records'])) {
             //Recorrer todos los contactos del Account
-            $found=false;
             foreach ($response['records'] as $record) {
                 //Evaluar los criterios de matching
                 if ($record['Name'] == 'John Smith') {
@@ -127,8 +127,23 @@ class InfojobsSalesApi extends CrmApi {
                 }
             }
         }
-
-        //try searching for lead as this has been changed before in updated done to the plugin
+        
+        //Si no lo hemos encontrado como contacto de esa Account, buscamos entre todos los lead activos y no convertidos
+        if (!found){
+            $findLead = 'SELECT FirstName,LastName,IsConverted FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false';
+            $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
+            foreach ($response['records'] as $record) {
+                //Evaluar los criterios de matching
+                if ($record['FirstName'] == 'John Smith') {
+                    if (!found){
+                        $sfRecords['Contact'] = $record;
+                        $found=true;
+                    }    
+                }
+            }
+        }
+        
+        /*try searching for lead as this has been changed before in updated done to the plugin
         if (isset($config['objects']) && false !== array_search('Contact', $config['objects']) && !empty($data['Contact']['Email'])) {
             $fields = $this->integration->getFieldsForQuery('Contact');
             $fields[] = 'Id';
@@ -160,6 +175,8 @@ class InfojobsSalesApi extends CrmApi {
                 }
             }
         }
+         */
+        
         return $sfRecords;
     }
 

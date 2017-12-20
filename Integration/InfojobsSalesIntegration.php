@@ -652,6 +652,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
      */
     public function pushLead($lead,  $config = [])
     {
+        $this->logger->debug("InfojobsSalesIntegration: pushLead ($lead) ");
         $config = $this->mergeConfigToFeatureSettings($config);
 
         if (empty($config['leadFields'])) {
