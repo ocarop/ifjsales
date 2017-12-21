@@ -102,6 +102,7 @@ class InfojobsSalesApi extends CrmApi {
      * @param array $data
      *
      * @return array
+     * funcion reescrita para adaptarla a la logica que requiere Infojobs
      */
     public function getPerson(array $data) {
         $config = $this->integration->mergeConfigToFeatureSettings([]);
@@ -110,38 +111,66 @@ class InfojobsSalesApi extends CrmApi {
             'Contact' => [],
             'Lead' => [],
         ];
+        
+        
+        $accountsalesforceid='';
+        
         //buscar todos los contactos del Account
-        $findContact = 'SELECT Id, Name, FirstName, SegundoApellido__c FROM Contact where Account.Id = \'0014E00000euM53\'';
-        $response = $this->request('query', ['q' => $findContact], 'GET', false, null, $queryUrl);
-
-        $found=false;
-        if (!empty($response['records'])) {
-            //Recorrer todos los contactos del Account
-            foreach ($response['records'] as $record) {
-                //Evaluar los criterios de matching
-                if ($record['Name'] == 'John Smith') {
-                    if (!found){
-                        $sfRecords['Contact'] = $record;
-                        $found=true;
-                    }    
-                }
+        if (!empty($data['Contact']['parentaccountsalesforceid'])){
+                $accountsalesforceid=$data['Contact']['parentaccountsalesforceid'];
+        }
+        else{
+            if (!empty($data['Lead']['parentaccountsalesforceid'])){
+                $accountsalesforceid=$data['Lead']['parentaccountsalesforceid'];
             }
         }
         
-        //Si no lo hemos encontrado como contacto de esa Account, buscamos entre todos los lead activos y no convertidos
-        if (!found){
-            $findLead = 'SELECT FirstName,LastName,IsConverted FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false';
-            $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
-            foreach ($response['records'] as $record) {
-                //Evaluar los criterios de matching
-                if ($record['FirstName'] == 'John Smith') {
-                    if (!found){
-                        $sfRecords['Contact'] = $record;
-                        $found=true;
-                    }    
+        if ($accountsalesforceid!=''){
+            $findContact = 'SELECT Id, Name, FirstName, SegundoApellido__c FROM Contact where Account.Id = \'0014E00000euM53\'';
+            $response = $this->request('query', ['q' => $findContact], 'GET', false, null, $queryUrl);
+
+            $found=false;
+            if (!empty($response['records'])) {
+                //Recorrer todos los contactos del Account
+                foreach ($response['records'] as $record) {
+                    //Evaluar los criterios de matching
+                    /*
+                        • 100% - Contact -> Daremos por match 100% un contacto cuando: 
+                            ◦ Email + Phone + FirstName + LastName + MobilePhone + SegundoApellido
+                        • 90% - Contact -> Daremos por match 90% un contacto cuando:
+                            ◦ Email + FirstName + LastName + MobilePhone + Phone
+                        • 50% - Contact -> Daremos por match 50% un contacto cuando:
+                            ◦ Email + FirstName + LastName
+                        • 30% - Contact -> Daremos por match 30% un contacto cuando:
+                            ◦ FirstName + LastName + MobilePhone + Phone
+                        • 20% - Contact -> Daremos por match 20% un contacto cuando:
+                            ◦ FirstName + LastName
+                     * 
+                     */
+                    if ($record['Name'] == 'John Smith') {
+                        if (!found){
+                            $sfRecords['Contact'] = $record;
+                            $found=true;
+                        }    
+                    }
                 }
             }
-        }
+
+            //Si no lo hemos encontrado como contacto de esa Account, buscamos entre todos los lead activos y no convertidos
+            if (!found){
+                $findLead = 'SELECT FirstName,LastName,IsConverted FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false';
+                $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
+                foreach ($response['records'] as $record) {
+                    //Evaluar los criterios de matching
+                    if ($record['FirstName'] == 'John Smith') {
+                        if (!found){
+                            $sfRecords['Lead'] = $record;
+                            $found=true;
+                        }    
+                    }
+                }
+            }
+        }    
         
         /*try searching for lead as this has been changed before in updated done to the plugin
         if (isset($config['objects']) && false !== array_search('Contact', $config['objects']) && !empty($data['Contact']['Email'])) {
