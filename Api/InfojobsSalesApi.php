@@ -126,7 +126,9 @@ class InfojobsSalesApi extends CrmApi {
         }
         
         if ($accountsalesforceid!=''){
-            $findContact = 'SELECT Id, Name, FirstName, SegundoApellido__c FROM Contact where Account.Id = \'0014E00000euM53\'';
+            $findContact = 'SELECT Id, FirstName, LastName, SegundoApellido__c,Email,'
+                    . 'Phone,MobilePhone FROM Contact where Account.Id = \''
+                    . $accountsalesforceid . '\'';
             $response = $this->request('query', ['q' => $findContact], 'GET', false, null, $queryUrl);
 
             $found=false;
@@ -147,17 +149,72 @@ class InfojobsSalesApi extends CrmApi {
                             ◦ FirstName + LastName
                      * 
                      */
-                    if ($record['Name'] == 'John Smith') {
+                    
+                    // 100% - Contact -> Daremos por match 100% un contacto cuando: 
+                    // Email + Phone + FirstName + LastName + MobilePhone + SegundoApellido
+
+                    if (    $record['FirstName'] == $data['Contact']['FirstName'] &&
+                            $record['LastName'] == $data['Contact']['LastName'] && 
+                            $record['Email'] == $data['Contact']['Email'] &&
+                            $record['Phone'] == $data['Contact']['Phone'] &&
+                            $record['MobilePhone'] == $data['Contact']['MobilePhone'] &&
+                            $record['SegundoApellido__c'] == $data['Contact']['SegundoApellido']) {
                         if (!found){
                             $sfRecords['Contact'] = $record;
                             $found=true;
                         }    
                     }
+                    // 90% - Contact -> Daremos por match 90% un contacto cuando:
+                    // Email + FirstName + LastName + MobilePhone + Phone                    
+                    if (!found){
+                        if (
+                                $record['FirstName'] == $data['Contact']['FirstName'] &&
+                                $record['LastName'] == $data['Contact']['LastName'] && 
+                                $record['Email'] == $data['Contact']['LastName'] && 
+                                $record['Phone'] == $data['Contact']['Phone'] &&
+                                $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
+                                    $sfRecords['Contact'] = $record;
+                                    $found=true;
+                        }
+                    }
+                    // 50% - Contact -> Daremos por match 50% un contacto cuando:
+                    // Email + FirstName + LastName
+                    if (!found){
+                        if (    $record['FirstName'] == $data['Contact']['FirstName'] &&
+                                $record['LastName'] == $data['Contact']['LastName'] && 
+                                $record['Email'] == $data['Contact']['Email'] ) {
+                                    $sfRecords['Contact'] = $record;
+                                    $found=true;
+                        }
+                    }
+                    //30% - Contact -> Daremos por match 30% un contacto cuando:
+                    // FirstName + LastName + MobilePhone + Phone
+                    if (!found){
+                        if (                                $record['FirstName'] == $data['Contact']['FirstName'] &&
+                                $record['LastName'] == $data['Contact']['LastName'] && 
+                                $record['Phone'] == $data['Contact']['Phone'] &&
+                                $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
+                                    $sfRecords['Contact'] = $record;
+                                    $found=true;
+                        }
+                    }
+                    // Contact -> Daremos por match 20% un contacto cuando:
+                    //FirstName + LastName
+                    if (!found){
+                        if (                                $record['FirstName'] == $data['Contact']['FirstName'] &&
+                                $record['LastName'] == $data['Contact']['LastName']  
+                                ) {
+                                    $sfRecords['Contact'] = $record;
+                                    $found=true;
+                        }
+                    }
+                    
+                    
                 }
             }
 
             //Si no lo hemos encontrado como contacto de esa Account, buscamos entre todos los lead activos y no convertidos
-            if (!found){
+            if (!$found){
                 $findLead = 'SELECT FirstName,LastName,IsConverted FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false';
                 $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
                 foreach ($response['records'] as $record) {
