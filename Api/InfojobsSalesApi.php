@@ -153,22 +153,21 @@ class InfojobsSalesApi extends CrmApi {
                     // 100% - Contact -> Daremos por match 100% un contacto cuando: 
                     // Email + Phone + FirstName + LastName + MobilePhone + SegundoApellido
 
-                    if (    $record['FirstName'] == $data['Contact']['FirstName'] &&
+                    if ($record['FirstName'] == $data['Contact']['FirstName'] &&
                             $record['LastName'] == $data['Contact']['LastName'] && 
                             $record['Email'] == $data['Contact']['Email'] &&
                             $record['Phone'] == $data['Contact']['Phone'] &&
                             $record['MobilePhone'] == $data['Contact']['MobilePhone'] &&
                             $record['SegundoApellido__c'] == $data['Contact']['SegundoApellido']) {
-                        if (!found){
+                        if (!$found){
                             $sfRecords['Contact'] = $record;
                             $found=true;
                         }    
                     }
                     // 90% - Contact -> Daremos por match 90% un contacto cuando:
                     // Email + FirstName + LastName + MobilePhone + Phone                    
-                    if (!found){
-                        if (
-                                $record['FirstName'] == $data['Contact']['FirstName'] &&
+                    if (!$found){
+                        if ($record['FirstName'] == $data['Contact']['FirstName'] &&
                                 $record['LastName'] == $data['Contact']['LastName'] && 
                                 $record['Email'] == $data['Contact']['LastName'] && 
                                 $record['Phone'] == $data['Contact']['Phone'] &&
@@ -179,8 +178,8 @@ class InfojobsSalesApi extends CrmApi {
                     }
                     // 50% - Contact -> Daremos por match 50% un contacto cuando:
                     // Email + FirstName + LastName
-                    if (!found){
-                        if (    $record['FirstName'] == $data['Contact']['FirstName'] &&
+                    if (!$found){
+                        if ($record['FirstName'] == $data['Contact']['FirstName'] &&
                                 $record['LastName'] == $data['Contact']['LastName'] && 
                                 $record['Email'] == $data['Contact']['Email'] ) {
                                     $sfRecords['Contact'] = $record;
@@ -189,8 +188,8 @@ class InfojobsSalesApi extends CrmApi {
                     }
                     //30% - Contact -> Daremos por match 30% un contacto cuando:
                     // FirstName + LastName + MobilePhone + Phone
-                    if (!found){
-                        if (                                $record['FirstName'] == $data['Contact']['FirstName'] &&
+                    if (!$found){
+                        if ($record['FirstName'] == $data['Contact']['FirstName'] &&
                                 $record['LastName'] == $data['Contact']['LastName'] && 
                                 $record['Phone'] == $data['Contact']['Phone'] &&
                                 $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
@@ -200,8 +199,8 @@ class InfojobsSalesApi extends CrmApi {
                     }
                     // Contact -> Daremos por match 20% un contacto cuando:
                     //FirstName + LastName
-                    if (!found){
-                        if (                                $record['FirstName'] == $data['Contact']['FirstName'] &&
+                    if (!$found){
+                        if ($record['FirstName'] == $data['Contact']['FirstName'] &&
                                 $record['LastName'] == $data['Contact']['LastName']  
                                 ) {
                                     $sfRecords['Contact'] = $record;
@@ -220,7 +219,7 @@ class InfojobsSalesApi extends CrmApi {
                 foreach ($response['records'] as $record) {
                     //Evaluar los criterios de matching
                     if ($record['FirstName'] == 'John Smith') {
-                        if (!found){
+                        if (!$found){
                             $sfRecords['Lead'] = $record;
                             $found=true;
                         }    
