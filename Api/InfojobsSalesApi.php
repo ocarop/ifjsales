@@ -116,12 +116,23 @@ class InfojobsSalesApi extends CrmApi {
         $accountsalesforceid='';
         
         //buscar todos los contactos del Account
-        if (!empty($data['Contact']['parentaccountsalesforceid'])){
-                $accountsalesforceid=$data['Contact']['parentaccountsalesforceid'];
+        if (!empty($data['Contact']['ParentAccountSalesforceId'])){
+                $accountsalesforceid=$data['Contact']['ParentAccountSalesforceId'];
         }
         else{
-            if (!empty($data['Lead']['parentaccountsalesforceid'])){
-                $accountsalesforceid=$data['Lead']['parentaccountsalesforceid'];
+            if (!empty($data['Lead']['ParentAccountSalesforceId'])){
+                $accountsalesforceid=$data['Lead']['ParentAccountSalesforceId'];
+            }
+        }
+        
+        if (empty($response['records'])) {
+            //Verificar que la cuenta existe
+            $findAccount = 'SELECT Id FROM Account where Id = \''
+                    . $accountsalesforceid . '\'';
+            $response = $this->request('query', ['q' => $findAccount], 'GET', false, null, $queryUrl);
+            if (!empty($response['records'])){
+                $this->integration->getLogger()->debug('AccountId incorrecto' .  $accountsalesforceid);
+                $accountsalesforceid='';
             }
         }
         
@@ -131,6 +142,7 @@ class InfojobsSalesApi extends CrmApi {
                     . $accountsalesforceid . '\'';
             $response = $this->request('query', ['q' => $findContact], 'GET', false, null, $queryUrl);
 
+            
             $found=false;
             if (!empty($response['records'])) {
                 //Recorrer todos los contactos del Account
@@ -214,16 +226,61 @@ class InfojobsSalesApi extends CrmApi {
 
             //Si no lo hemos encontrado como contacto de esa Account, buscamos entre todos los lead activos y no convertidos
             if (!$found){
-                $findLead = 'SELECT FirstName,LastName,IsConverted FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false';
+                $findLead = 'SELECT Company,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false';
                 $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
                 foreach ($response['records'] as $record) {
-                    //Evaluar los criterios de matching
-                    if ($record['FirstName'] == 'John Smith') {
-                        if (!$found){
+                    /*/* TODO: Revisar: Evaluar los criterios de matching
+Se busca el lead por -> Identificador Fiscal
+                     * 
+                     */
+                    if (!$found){                     
+                        //Si no se encuentra un lead con ese Identificador Fiscal, entonces se busca por: Company + Email + Name + Phone
+                        if ($record['Company'] == $data['Lead']['Company'] &&
+                                record['FirstName'] == $data['Lead']['FirstName'] &&
+                                record['LastName'] == $data['Lead']['LastName'] &&
+                                $record['Email'] == $data['Lead']['Email'] &&
+                                $record['Phone'] == $data['Lead']['Phone']
+                                ) {
+                                    $sfRecords['Lead'] = $record;
+                                    $found=true;
+                        }
+                    }
+                    if (!$found){                     
+                        //Si no se encuentra un lead match 90%, entonces se busca por: Company + Email + Name
+                        if ($record['Company'] == $data['Lead']['Company'] &&
+                                record['FirstName'] == $data['Lead']['FirstName'] &&
+                                record['LastName'] == $data['Lead']['LastName'] &&
+                                $record['Email'] == $data['Lead']['Email'] 
+                                ) {
+                                    $sfRecords['Lead'] = $record;
+                                    $found=true;
+                        }                        
+                    } 
+                    if (!$found){                     
+                        //Si no se encuentra un lead match 80%, entonces se busca por: Company + Email
+                        if ($record['Company'] == $data['Lead']['Company'] &&
+                                $record['Email'] == $data['Lead']['Email']
+                                ) {
+                                    $sfRecords['Lead'] = $record;
+                                    $found=true;
+                        }                        
+                    } 
+                    if (!$found){                     
+                        //Si no se encuentra un lead match 60%, entonces se busca por: Company + Phone
+                        if ($record['Company'] == $data['Lead']['Company'] &&
+                                $record['Phone'] == $data['Lead']['Phone']
+                                ) {
+                                    $sfRecords['Lead'] = $record;
+                                    $found=true;
+                        }                        
+                    } 
+                    if (!$found){                     
+                        //Si no se encuentra un lead match 50%, entonces se busca por: Company                   
+                        if ($record['Company'] == $data['Lead']['Company']) {
                             $sfRecords['Lead'] = $record;
                             $found=true;
-                        }    
-                    }
+                        }                        
+                    } 
                 }
             }
         }    

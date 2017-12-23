@@ -711,10 +711,36 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
                         }
                     }
 
+                    //Modificacion:
+                    //Se crea Lead si no se ha encontrado ningun match y no tiene AccountId 
+                    //Creamos Contact si no se ha encontrado ningun match y que si existe la cuenta en salesforce
                     if ('Lead' === $object && !$personFound) {
-                        $personData                         = $this->getApiHelper()->createLead($mappedData[$object]['create']);
-                        $people[$object][$personData['Id']] = $personData['Id'];
-                        $personFound                        = true;
+                        //Comprobar si se tiene idAccount en salesforce
+                        $accountsalesforceid='';
+                        if (!empty($data['Lead']['ParentAccountSalesforceId'])){
+                            $accountsalesforceid=$data['Lead']['ParentAccountSalesforceId'];
+                        }
+                        if ($accountsalesforceid==''){
+                            //Si no tiene Account vinculado, entonces se crea un nuevo Lead,
+                            //Si tien account, entrará en el siguiente if y crearemos un Contact
+                            //TODO: consultar si tb creamos un Account
+                            $this->logger->debug("Crear lead " . $mappedData[$object]['Email'] );
+                            $personData                         = $this->getApiHelper()->createLead($mappedData['Lead']['create']);
+                            $people[$object][$personData['Id']] = $personData['Id'];
+                            $personFound                        = true;
+                        }    
+                    }
+                    if ('Contact' === $object && !$personFound){
+                        $accountsalesforceid='';
+                        if (!empty($data['Contact']['ParentAccountSalesforceId'])){
+                            $accountsalesforceid=$data['Contact']['ParentAccountSalesforceId'];
+                        }
+                        if ($accountsalesforceid!=''){
+                            //Solo crearemos Contact si tenemos el Accountid
+                            //Si no lo tenemos, en el if anterior se habrá creado un Lead
+                            $this->logger->debug("Crear Contact " . $mappedData['Contact']['Email'] );
+                            $this->getApiHelper()->createObject($mappedData['Contact']['create'], 'Contact');
+                        }
                     }
 
                     if (isset($personData['Id'])) {
@@ -792,6 +818,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
                 }
 
                 if (!$companyFound) {
+                    
                     $companyData                   = $this->getApiHelper()->createObject($mappedData[$object]['create'], 'Account');
                     $companies[$companyData['Id']] = $companyData['Id'];
                     $companyFound                  = true;
@@ -1057,6 +1084,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
      */
     public function pushLeads($params = [])
     {
+        $this->logger->debug("inicio pushLeads ($params): ");
         $limit                   = (isset($params['limit'])) ? $params['limit'] : 100;
         list($fromDate, $toDate) = $this->getSyncTimeframeDates($params);
         $config                  = $this->mergeConfigToFeatureSettings($params);
@@ -2528,6 +2556,12 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
                     ]
                 );
 
+                //Mapear siempre el campo ParentAccountSalesforceId de Contact
+                if ('Contact' === $object){
+                    if (!empty($lead['ParentAccountSalesforceId'])){
+                       $mappedData[$object]['create']['ParentAccountSalesforceId']=$lead['ParentAccountSalesforceId'];
+                    }
+                }    
                 if (isset($mappedData[$object]['create']['Id'])) {
                     unset($mappedData[$object]['create']['Id']);
                 }
