@@ -125,7 +125,7 @@ class InfojobsSalesApi extends CrmApi {
             }
         }
         
-        if (empty($response['records'])) {
+        if ($accountsalesforceid!='') {
             //Verificar que la cuenta existe
             $findAccount = 'SELECT Id FROM Account where Id = \''
                     . $accountsalesforceid . '\'';

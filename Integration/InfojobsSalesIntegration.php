@@ -714,7 +714,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
                     //Modificacion:
                     //Se crea Lead si no se ha encontrado ningun match y no tiene AccountId 
                     //Creamos Contact si no se ha encontrado ningun match y que si existe la cuenta en salesforce
-                    if ('Lead' === $object && !$personFound) {
+                    if ('Lead' === $object && !$personFound && false) {
                         //Comprobar si se tiene idAccount en salesforce
                         $accountsalesforceid='';
                         if (!empty($data['Lead']['ParentAccountSalesforceId'])){
@@ -2556,12 +2556,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
                     ]
                 );
 
-                //Mapear siempre el campo ParentAccountSalesforceId de Contact
-                if ('Contact' === $object){
-                    if (!empty($lead['ParentAccountSalesforceId'])){
-                       $mappedData[$object]['create']['ParentAccountSalesforceId']=$lead['ParentAccountSalesforceId'];
-                    }
-                }    
+    
                 if (isset($mappedData[$object]['create']['Id'])) {
                     unset($mappedData[$object]['create']['Id']);
                 }

@@ -63,10 +63,100 @@ class BuildJsSubscriber extends CommonSubscriber
      */
     public function onBuildJs(BuildJsEvent $event)
     {
+        //$jQueryUrl = $this->$assetsHelper->getUrl('app/bundles/CoreBundle/Assets/js/libraries/2.jquery.js', null, null, true);
         $js = <<<JS
+                
+MauticJS.initAutocompleteIfj = function () {
+  MauticJS.mauticInsertedScripts = MauticJS.mauticInsertedScripts || {};
+   
+  if ("undefined" == typeof jQuery && "undefined" == typeof MauticJS.mauticInsertedScripts.jQuery) {
+      console.log ('insert jquery')
+      MauticJS.insertScript('http://code.jquery.com/jquery-1.12.4.js');
+      MauticJS.mauticInsertedScripts.jQuery = true;
+  }
+  else{
+    //cargamos jquery-ui cuando jQuery ya esta disponible  
+    if ("undefined" == typeof jQuery.ui) {
+        console.log ('insert jquery-ui');
+        MauticJS.insertScript('http://code.jquery.com/ui/1.12.1/jquery-ui.js');  
+        MauticJS.insertStyle('https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
+    }
+  }      
+  if ("undefined" == typeof jQuery||"undefined" == typeof jQuery.ui) {
+      console.log ('carga asincrona de jquery y jquery ui')
+      window.setTimeout(MauticJS.initAutocompleteIfj, 1000);
+  } else {
+      MauticJS.autocompleteIfj();
+  }
+}  
+
+MauticJS.autocompleteIfj = function () {
+  console.log('autocompleteIfj');
+  var dtcInfoEmpresasURL = "https://ws.uniqua.es/business_search/companyinfo?code=%CI_DATACENTRIC";
+  var el = jQuery(".autocompleteIfj");
+  if (el.length) {
+    el.autocomplete({
+      minLength: 3,
+      source: function(request, response) {
+        var dtcAutocompleteURL = "https://ws.uniqua.es/business_search/autocomplete?query=%QUERY&num=10";
+
+        dtcAutocompleteURL = dtcAutocompleteURL.replace('%QUERY', request.term);
+
+
+        $.ajax({
+          url: dtcAutocompleteURL,
+          dataType: "json",
+          success: function(data) {
+            console.log(data);
+            if (data.status == "SUCCESS") {
+              console.log(data.response);
+              response(data.response);
+            }
+          }
+        });
+      },
+      select: function(event, ui) {
+        jQuery("#id_salesforce").val(ui.item.CI_INFOJOBS);
+        jQuery("#id_datacentric").val(ui.item.CI_DATACENTRIC);
+        dtcInfoEmpresasURL = "https://ws.uniqua.es/business_search/companyinfo?code=%CI_DATACENTRIC";        
+        dtcInfoEmpresasURL = dtcInfoEmpresasURL.replace('%CI_DATACENTRIC', ui.item.CI_DATACENTRIC);
+        console.log(dtcInfoEmpresasURL);
+        $.ajax({
+          url: dtcInfoEmpresasURL,
+          success: function(data) {
+            if (data.status == "SUCCESS") {
+              console.log(data);
+              jQuery("input[name='mauticform[id_salesforce]'").val(data.response.NIF);
+              jQuery('#direccion').val(data.response.DIRECCION);
+              jQuery('#cod_postal').val(data.response.COD_POSTAL);
+              jQuery('#localidad').val(data.response.LOCALIDAD);
+              jQuery('#provincia').val(data.response.PROVINCIA);
+            }
+          },
+          error: function() {
+            console.log('error llamando a companyinfo');
+          }
+        });
+        return false;
+      }
+    }).autocomplete("instance")._renderItem = function(ul, item) {
+      return jQuery("<li>")
+        .append(item.RAZON_SOCIAL)
+        .appendTo(ul);
+    };
+  }
+};             
+                
 MauticJS.documentReady(function() {
-    alert ('infojobs custom code');
-});
+  console.log('ready');
+   var x = document.getElementsByClassName("autocompleteIfj");
+   if (x.length >0){
+       console.log('cargar autocompletar infojobs');
+        MauticJS.initAutocompleteIfj();
+    }
+});    
+
+                
 JS;
         $event->appendJs($js, 'Infojobs');
     }
