@@ -235,7 +235,9 @@ Se busca el lead por -> Identificador Fiscal
                      */
                     if (!$found){                     
                         //Si no se encuentra un lead con ese Identificador Fiscal, entonces se busca por: Company + Email + Name + Phone
-                        if ($record['Company'] == $data['Lead']['Company'] &&
+                        //TODO: comprobar que esta establecido cada campo
+                        if (isset($data['Lead']['Company']) &&
+                                $record['Company'] == $data['Lead']['Company'] &&
                                 record['FirstName'] == $data['Lead']['FirstName'] &&
                                 record['LastName'] == $data['Lead']['LastName'] &&
                                 $record['Email'] == $data['Lead']['Email'] &&
@@ -247,7 +249,8 @@ Se busca el lead por -> Identificador Fiscal
                     }
                     if (!$found){                     
                         //Si no se encuentra un lead match 90%, entonces se busca por: Company + Email + Name
-                        if ($record['Company'] == $data['Lead']['Company'] &&
+                        if (isset($data['Lead']['Company']) &&
+                                $record['Company'] == $data['Lead']['Company'] &&
                                 record['FirstName'] == $data['Lead']['FirstName'] &&
                                 record['LastName'] == $data['Lead']['LastName'] &&
                                 $record['Email'] == $data['Lead']['Email'] 
@@ -258,7 +261,8 @@ Se busca el lead por -> Identificador Fiscal
                     } 
                     if (!$found){                     
                         //Si no se encuentra un lead match 80%, entonces se busca por: Company + Email
-                        if ($record['Company'] == $data['Lead']['Company'] &&
+                        if (isset($data['Lead']['Company']) &&
+                                $record['Company'] == $data['Lead']['Company'] &&
                                 $record['Email'] == $data['Lead']['Email']
                                 ) {
                                     $sfRecords['Lead'] = $record;
@@ -267,7 +271,8 @@ Se busca el lead por -> Identificador Fiscal
                     } 
                     if (!$found){                     
                         //Si no se encuentra un lead match 60%, entonces se busca por: Company + Phone
-                        if ($record['Company'] == $data['Lead']['Company'] &&
+                        if (isset($data['Lead']['Company']) &&
+                                $record['Company'] == $data['Lead']['Company'] &&
                                 $record['Phone'] == $data['Lead']['Phone']
                                 ) {
                                     $sfRecords['Lead'] = $record;
@@ -276,7 +281,8 @@ Se busca el lead por -> Identificador Fiscal
                     } 
                     if (!$found){                     
                         //Si no se encuentra un lead match 50%, entonces se busca por: Company                   
-                        if ($record['Company'] == $data['Lead']['Company']) {
+                        if (isset($data['Lead']['Company']) &&
+                            $record['Company'] == $data['Lead']['Company']) {
                             $sfRecords['Lead'] = $record;
                             $found=true;
                         }                        

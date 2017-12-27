@@ -672,9 +672,11 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
         //Guardamos para cada contact que venga de los formularios, la
         //clave que tiene el Account en salesforce
         //Tendra valor siempre que el usuario haya seleccionado una empresa del campo autocompletar        
+        $accountsalesforceid='';
         if (isset($fields['parentaccountsalesforceid']) && $fields['parentaccountsalesforceid']['value']){
             $mappedData['Contact']['create']['parentaccountsalesforceid']=$fields['parentaccountsalesforceid']['value'];
             $mappedData['Lead']['create']['parentaccountsalesforceid']=$fields['parentaccountsalesforceid']['value'];
+            $accountsalesforceid=$fields['parentaccountsalesforceid']['value'];
         }  
         else{
             $matched['parentaccountsalesforceid']='';
@@ -736,28 +738,22 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
                     //Creamos Contact si no se ha encontrado ningun match y que si existe la cuenta en salesforce
                     if ('Lead' === $object && !$personFound && false) {
                         //Comprobar si se tiene idAccount en salesforce
-                        $accountsalesforceid='';
-                        if (!empty($data['Lead']['ParentAccountSalesforceId'])){
-                            $accountsalesforceid=$data['Lead']['ParentAccountSalesforceId'];
-                        }
                         if ($accountsalesforceid==''){
                             //Si no tiene Account vinculado, entonces se crea un nuevo Lead,
                             //Si tien account, entrará en el siguiente if y crearemos un Contact
                             //TODO: consultar si tb creamos un Account
                             $this->logger->debug("Crear lead " . $mappedData[$object]['Email'] );
+                            unset($mappedData['Lead']['create']['parentaccountsalesforceid']);
                             $personData                         = $this->getApiHelper()->createLead($mappedData['Lead']['create']);
                             $people[$object][$personData['Id']] = $personData['Id'];
                             $personFound                        = true;
                         }    
                     }
                     if ('Contact' === $object && !$personFound){
-                        $accountsalesforceid='';
-                        if (!empty($data['Contact']['ParentAccountSalesforceId'])){
-                            $accountsalesforceid=$data['Contact']['ParentAccountSalesforceId'];
-                        }
                         if ($accountsalesforceid!=''){
                             //Solo crearemos Contact si tenemos el Accountid
                             //Si no lo tenemos, en el if anterior se habrá creado un Lead
+                            unset($mappedData['Contact']['create']['parentaccountsalesforceid']);
                             $this->logger->debug("Crear Contact " . $mappedData['Contact']['Email'] );
                             $this->getApiHelper()->createObject($mappedData['Contact']['create'], 'Contact');
                         }
