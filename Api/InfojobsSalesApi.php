@@ -116,12 +116,12 @@ class InfojobsSalesApi extends CrmApi {
         $accountsalesforceid='';
         
         //buscar todos los contactos del Account
-        if (!empty($data['Contact']['ParentAccountSalesforceId'])){
-                $accountsalesforceid=$data['Contact']['ParentAccountSalesforceId'];
+        if (!empty($data['Contact']['parentaccountsalesforceid'])){
+                $accountsalesforceid=$data['Contact']['parentaccountsalesforceid'];
         }
         else{
-            if (!empty($data['Lead']['ParentAccountSalesforceId'])){
-                $accountsalesforceid=$data['Lead']['ParentAccountSalesforceId'];
+            if (!empty($data['Lead']['parentaccountsalesforceid'])){
+                $accountsalesforceid=$data['Lead']['parentaccountsalesforceid'];
             }
         }
         
@@ -130,7 +130,7 @@ class InfojobsSalesApi extends CrmApi {
             $findAccount = 'SELECT Id FROM Account where Id = \''
                     . $accountsalesforceid . '\'';
             $response = $this->request('query', ['q' => $findAccount], 'GET', false, null, $queryUrl);
-            if (!empty($response['records'])){
+            if (empty($response['records'])){
                 $this->integration->getLogger()->debug('AccountId incorrecto' .  $accountsalesforceid);
                 $accountsalesforceid='';
             }
@@ -145,7 +145,7 @@ class InfojobsSalesApi extends CrmApi {
             
             $found=false;
             if (!empty($response['records'])) {
-                //Recorrer todos los contactos del Account
+                //Recorrer todos los contactos del Account y tratamos de hacer match con Contact
                 foreach ($response['records'] as $record) {
                     //Evaluar los criterios de matching
                     /*

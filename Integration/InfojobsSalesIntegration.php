@@ -661,6 +661,26 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration
 
         $mappedData = $this->mapContactDataForPush($lead, $config);
 
+        //Intentar completar el campo parentaccountsalesforceid
+        if ($lead instanceof Lead) {
+            $fields = $lead->getFields(true);
+            $leadId = $lead->getId();
+        } else {
+            $fields = $lead;
+            $leadId = $lead['id'];
+        }
+        //Guardamos para cada contact que venga de los formularios, la
+        //clave que tiene el Account en salesforce
+        //Tendra valor siempre que el usuario haya seleccionado una empresa del campo autocompletar        
+        if (isset($fields['parentaccountsalesforceid']) && $fields['parentaccountsalesforceid']['value']){
+            $mappedData['Contact']['create']['parentaccountsalesforceid']=$fields['parentaccountsalesforceid']['value'];
+            $mappedData['Lead']['create']['parentaccountsalesforceid']=$fields['parentaccountsalesforceid']['value'];
+        }  
+        else{
+            $matched['parentaccountsalesforceid']='';
+        }
+        
+
         // No fields are mapped so bail
         if (empty($mappedData)) {
             return false;
