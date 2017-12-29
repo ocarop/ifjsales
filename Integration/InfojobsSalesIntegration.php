@@ -707,26 +707,8 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                 //Si tiene account, entrará en el siguiente if y crearemos como Contact, no como Lead
                                 //TODO: consultar si tb creamos un Account, de momento si que lo haremos
                                 $this->logger->debug("Crear lead " . $mappedData[$object]['Email']);
-                                if (isset($mappedData['Lead']['create']['Company'])) {
-                                    //En este punto Company tiene el nombre de compañia, buscamos 
-                                    //por nombre a ver si existe
-                                    $accountId = $this->getCompanyName($mappedData['Lead']['create']['AccountId'], 'Id', 'Name');
-                                    if (!$accountId) {
-                                        //company was not found so create a new company in Salesforce
-                                        $this->logger->debug("Crear account en salesforce " . $accountId);
-                                        $company = $lead->getPrimaryCompany();
-                                        if (!empty($company)) {
-                                            $company = $this->companyModel->getEntity($company['id']);
-                                            $sfCompany = $this->pushCompany($company);
-                                            if ($sfCompany) {
-                                                $mappedData['Lead']['create']['AccountId'] = key($sfCompany);
-                                            }
-                                        }
-                                    } else {
-                                        $this->logger->debug("Account encontrado en salesforce " . $accountId);
-                                        $mappedData['Lead']['create']['AccountId'] = $accountId;
-                                    }
-                                }
+                                //Los Lead no están vinculados a Account en salesforce
+                                // por tanto no buscamos la compañia
 
                                 unset($mappedData['Lead']['create']['parentaccountsalesforceid']);
                                 $personData = $this->getApiHelper()->createLead($mappedData['Lead']['create']);
@@ -744,6 +726,43 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                 $personData = $this->getApiHelper()->createObject($mappedData['Contact']['create'], 'Contact');
                                 $people[$object][$personData['Id']] = $personData['Id'];
                                 $personFound = true;                                
+                            }
+                            else{
+                                /* Si quisieramos crear account 
+                                 * sería este código
+                                 * (comentado porque Infojobs no pide crear Account)
+                                if (isset($mappedData['Contact']['create']['Company'])) {
+                                    //En este punto Company tiene el nombre de compañia, buscamos 
+                                    //por nombre a ver si existe
+                                    $accountId = $this->getCompanyName($mappedData['Contact']['create']['Company'], 'Id', 'Name');
+                                    if (!$accountId) {
+                                        //no se encuentra company,
+                                        //crearla en Salesforce requiere que 
+                                        // la compañia esté establecida
+                                        if (isset($config['companyfields'])){
+                                            $this->logger->debug("Crear account en salesforce " . $accountId);
+                                            $companies = $this->leadModel->getCompanies($lead);
+                                            if (!empty($companies)) {
+                                                foreach ($companies as $companyData) {
+                                                    if ($companyData['is_primary']) {
+                                                        $company = $this->companyModel->getEntity($companyData['company_id']);
+                                                    }
+                                                }
+                                            } 
+                                            if ($company) {
+                                                //$company = $this->companyModel->getEntity($company['id']);
+                                                $sfCompany = $this->pushCompany($company);
+                                                if ($sfCompany) {
+                                                    $mappedData['Contact']['create']['AccountId'] = key($sfCompany);
+                                                }
+                                            }
+                                        }    
+                                    } else {
+                                        $this->logger->debug("Account encontrado en salesforce " . $accountId);
+                                        $mappedData['Contact']['create']['AccountId'] = $accountId;
+                                    }
+                                }
+                                */
                             }
                         }
 
