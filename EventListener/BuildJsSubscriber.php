@@ -93,7 +93,7 @@ MauticJS.initAutocompleteIfj = function () {
 MauticJS.autocompleteIfj = function () {
   console.log('autocompleteIfj');
   var dtcInfoEmpresasURL = "https://ws.uniqua.es/business_search/companyinfo?code=%CI_DATACENTRIC";
-  var el = jQuery(".autocompleteIfj");
+  var el = jQuery(".dtc-razon_social");
   if (el.length) {
     el.autocomplete({
       minLength: 3,
@@ -116,8 +116,9 @@ MauticJS.autocompleteIfj = function () {
         });
       },
       select: function(event, ui) {
-        jQuery("#id_salesforce").val(ui.item.CI_INFOJOBS);
-        jQuery("#id_datacentric").val(ui.item.CI_DATACENTRIC);
+        jQuery('.dtc-razon_social').val(ui.item.RAZON_SOCIAL);
+        jQuery('.dtc-id_salesforce').val(ui.item.CI_INFOJOBS);
+        jQuery('.dtc-id_datacentric').val(ui.item.CI_DATACENTRIC);
         dtcInfoEmpresasURL = "https://ws.uniqua.es/business_search/companyinfo?code=%CI_DATACENTRIC";        
         dtcInfoEmpresasURL = dtcInfoEmpresasURL.replace('%CI_DATACENTRIC', ui.item.CI_DATACENTRIC);
         console.log(dtcInfoEmpresasURL);
@@ -126,11 +127,23 @@ MauticJS.autocompleteIfj = function () {
           success: function(data) {
             if (data.status == "SUCCESS") {
               console.log(data);
-              jQuery("input[name='mauticform[id_salesforce]'").val(data.response.NIF);
-              jQuery('#direccion').val(data.response.DIRECCION);
-              jQuery('#cod_postal').val(data.response.COD_POSTAL);
-              jQuery('#localidad').val(data.response.LOCALIDAD);
-              jQuery('#provincia').val(data.response.PROVINCIA);
+              jQuery('.dtc-actividad').val(data.response.ACTIVIDAD); 
+              jQuery('.dtc-nif').val(data.response.NIF);   
+              jQuery('.dtc-direccion').val(data.response.DIRECCION);
+              jQuery('.dtc-cod_postal').val(data.response.COD_POSTAL);
+              jQuery('.dtc-localidad').val(data.response.LOCALIDAD);
+              jQuery('.dtc-provincia').val(data.response.PROVINCIA);
+              jQuery('.dtc-actividad').val(data.response.ACTIVIDAD);
+              jQuery('.dtc-actividad').val(data.response.ACTIVIDAD);
+              jQuery('.dtc-telefono_1').val(data.response.TELEFONO_1);
+              jQuery('.dtc-nombre_cargo').val(data.response.NOMBRE_CARGO);
+              jQuery('.dtc-apelld_1_cargo').val(data.response.APELLD_1_CARGO);
+              jQuery('.dtc-apelld_2_cargo').val(data.response.APELLD_2_CARGO);
+              jQuery('.dtc-cargo').val(data.response.CARGO);
+              jQuery('.dtc-numero_empleados').val(data.response.NUMERO_EMPLEADOS);
+              jQuery('.dtc-ingresos').val(data.response.INGRESOS);
+              jQuery('.dtc-poligono').val(data.response.POLIGONO);
+                
             }
           },
           error: function() {
@@ -149,7 +162,7 @@ MauticJS.autocompleteIfj = function () {
                 
 MauticJS.documentReady(function() {
   console.log('ready');
-   var x = document.getElementsByClassName("autocompleteIfj");
+   var x = document.getElementsByClassName("dtc-razon_social");
    if (x.length >0){
        console.log('cargar autocompletar infojobs');
         MauticJS.initAutocompleteIfj();
