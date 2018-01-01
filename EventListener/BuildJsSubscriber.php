@@ -71,20 +71,20 @@ MauticJS.initAutocompleteIfj = function () {
    
   if ("undefined" == typeof jQuery && "undefined" == typeof MauticJS.mauticInsertedScripts.jQuery) {
       console.log ('insert jquery')
-      MauticJS.insertScript('http://code.jquery.com/jquery-1.12.4.js');
+      MauticJS.insertScript('https://code.jquery.com/jquery-1.12.4.min.js');
       MauticJS.mauticInsertedScripts.jQuery = true;
   }
   else{
     //cargamos jquery-ui cuando jQuery ya esta disponible  
     if ("undefined" == typeof jQuery.ui) {
         console.log ('insert jquery-ui');
-        MauticJS.insertScript('http://code.jquery.com/ui/1.12.1/jquery-ui.js');  
+        MauticJS.insertScript('https://code.jquery.com/ui/1.12.1/jquery-ui.min.js');  
         MauticJS.insertStyle('https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
     }
   }      
   if ("undefined" == typeof jQuery||"undefined" == typeof jQuery.ui) {
       console.log ('carga asincrona de jquery y jquery ui')
-      window.setTimeout(MauticJS.initAutocompleteIfj, 1000);
+      window.setTimeout(MauticJS.initAutocompleteIfj, 500);
   } else {
       MauticJS.autocompleteIfj();
   }

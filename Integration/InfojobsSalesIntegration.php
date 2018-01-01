@@ -689,7 +689,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                         $fieldsToUpdate['AccountId'] = $accountId;
                                     }
                                 }
-
+                                $this->logger->debug('update en salesforce id ' . $object); 
                                 $personData = $this->getApiHelper()->updateObject($fieldsToUpdate, $object, $person['Id']);
                                 $people[$object][$person['Id']] = $person['Id'];
                             }
@@ -710,7 +710,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                 //Los Lead no están vinculados a Account en salesforce
                                 // por tanto no buscamos la compañia
 
-                                unset($mappedData['Lead']['create']['parentaccountsalesforceid']);
+                                unset($mappedData['Lead']['create']['parentaccountsalesforceid']);                                
                                 $personData = $this->getApiHelper()->createLead($mappedData['Lead']['create']);
                                 $people[$object][$personData['Id']] = $personData['Id'];
                                 $personFound = true;

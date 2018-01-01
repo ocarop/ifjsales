@@ -116,14 +116,21 @@ class InfojobsSalesApi extends CrmApi {
         $accountsalesforceid='';
         
         //buscar todos los contactos del Account
-        if (!empty($data['Contact']['parentaccountsalesforceid'])){
-                $accountsalesforceid=$data['Contact']['parentaccountsalesforceid'];
+ 
+        
+        
+        if (!empty($data['Contact']['AccountId'])){
+            $this->integration->getLogger()->debug('Contact salesforce account id ' . $data['Contact']['AccountId']);
+            $accountsalesforceid=$data['Contact']['AccountId'];
         }
         else{
-            if (!empty($data['Lead']['parentaccountsalesforceid'])){
-                $accountsalesforceid=$data['Lead']['parentaccountsalesforceid'];
+            if (!empty($data['Lead']['AccountId'])){
+                $this->integration->getLogger()->debug('Lead salesforce account id ' . $data['Contact']['AccountId']);
+                $accountsalesforceid=$data['Lead']['AccountId'];
             }
         }
+        
+        
         
         if ($accountsalesforceid!='') {
             //Verificar que la cuenta existe
@@ -139,7 +146,9 @@ class InfojobsSalesApi extends CrmApi {
         if ($accountsalesforceid!=''){
             $findContact = 'SELECT Id, FirstName, LastName, SegundoApellido__c,Email,'
                     . 'Phone,MobilePhone FROM Contact where Account.Id = \''
-                    . $accountsalesforceid . '\'';
+                    . $accountsalesforceid . '\''
+                    . ' and FirstName = \'' . $data['Contact']['FirstName'] . '\''
+                    . ' and LastName = \'' . $data['Contact']['LastName'] . '\'';
             $response = $this->request('query', ['q' => $findContact], 'GET', false, null, $queryUrl);
 
             
@@ -172,6 +181,7 @@ class InfojobsSalesApi extends CrmApi {
                             $record['MobilePhone'] == $data['Contact']['MobilePhone'] &&
                             $record['SegundoApellido__c'] == $data['Contact']['SegundoApellido']) {
                         if (!$found){
+                            $this->integration->getLogger()->debug('match 100% Contact');
                             $sfRecords['Contact'] = $record;
                             $found=true;
                         }    
@@ -184,6 +194,7 @@ class InfojobsSalesApi extends CrmApi {
                                 $record['Email'] == $data['Contact']['LastName'] && 
                                 $record['Phone'] == $data['Contact']['Phone'] &&
                                 $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
+                                    $this->integration->getLogger()->debug('match 90% Contact');
                                     $sfRecords['Contact'] = $record;
                                     $found=true;
                         }
@@ -194,6 +205,7 @@ class InfojobsSalesApi extends CrmApi {
                         if ($record['FirstName'] == $data['Contact']['FirstName'] &&
                                 $record['LastName'] == $data['Contact']['LastName'] && 
                                 $record['Email'] == $data['Contact']['Email'] ) {
+                                    $this->integration->getLogger()->debug('match 50% Contact');
                                     $sfRecords['Contact'] = $record;
                                     $found=true;
                         }
@@ -205,6 +217,7 @@ class InfojobsSalesApi extends CrmApi {
                                 $record['LastName'] == $data['Contact']['LastName'] && 
                                 $record['Phone'] == $data['Contact']['Phone'] &&
                                 $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
+                                    $this->integration->getLogger()->debug('match 30% Contact');
                                     $sfRecords['Contact'] = $record;
                                     $found=true;
                         }
@@ -215,18 +228,18 @@ class InfojobsSalesApi extends CrmApi {
                         if ($record['FirstName'] == $data['Contact']['FirstName'] &&
                                 $record['LastName'] == $data['Contact']['LastName']  
                                 ) {
+                                    $this->integration->getLogger()->debug('match 20% Contact');
                                     $sfRecords['Contact'] = $record;
                                     $found=true;
                         }
                     }
-                    
-                    
                 }
             }
 
             //Si no lo hemos encontrado como contacto de esa Account, buscamos entre todos los lead activos y no convertidos
             if (!$found){
-                $findLead = 'SELECT Company,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false';
+                $findLead = 'SELECT Company,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
+                        . ' and Company= \'' . $data['Lead']['Company'] . '\'';
                 $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
                 foreach ($response['records'] as $record) {
                     /*/* TODO: Revisar: Evaluar los criterios de matching
@@ -243,6 +256,7 @@ Se busca el lead por -> Identificador Fiscal
                                 $record['Email'] == $data['Lead']['Email'] &&
                                 $record['Phone'] == $data['Lead']['Phone']
                                 ) {
+                                    $this->integration->getLogger()->debug('match Lead por company+email+name+phone'); 
                                     $sfRecords['Lead'] = $record;
                                     $found=true;
                         }
@@ -255,6 +269,7 @@ Se busca el lead por -> Identificador Fiscal
                                 record['LastName'] == $data['Lead']['LastName'] &&
                                 $record['Email'] == $data['Lead']['Email'] 
                                 ) {
+                                    $this->integration->getLogger()->debug('match Lead por company+mail+name'); 
                                     $sfRecords['Lead'] = $record;
                                     $found=true;
                         }                        
@@ -265,6 +280,7 @@ Se busca el lead por -> Identificador Fiscal
                                 $record['Company'] == $data['Lead']['Company'] &&
                                 $record['Email'] == $data['Lead']['Email']
                                 ) {
+                                    $this->integration->getLogger()->debug('match Lead por company+email'); 
                                     $sfRecords['Lead'] = $record;
                                     $found=true;
                         }                        
@@ -275,14 +291,16 @@ Se busca el lead por -> Identificador Fiscal
                                 $record['Company'] == $data['Lead']['Company'] &&
                                 $record['Phone'] == $data['Lead']['Phone']
                                 ) {
+                                    $this->integration->getLogger()->debug('match Lead por company+phone'); 
                                     $sfRecords['Lead'] = $record;
                                     $found=true;
                         }                        
                     } 
                     if (!$found){                     
                         //Si no se encuentra un lead match 50%, entonces se busca por: Company                   
-                        if (isset($data['Lead']['Company']) &&
+                        if (isset($data['Lead']['Company']) &&   
                             $record['Company'] == $data['Lead']['Company']) {
+                            $this->integration->getLogger()->debug('match Lead por company'); 
                             $sfRecords['Lead'] = $record;
                             $found=true;
                         }                        
