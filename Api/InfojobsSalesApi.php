@@ -182,7 +182,7 @@ class InfojobsSalesApi extends CrmApi {
                             $record['SegundoApellido__c'] == $data['Contact']['SegundoApellido']) {
                         if (!$found){
                             $this->integration->getLogger()->debug('match 100% Contact');
-                            $sfRecords['Contact'] = $record;
+                            $sfRecords['Contact']['records'] = $record;
                             $found=true;
                         }    
                     }
@@ -195,7 +195,7 @@ class InfojobsSalesApi extends CrmApi {
                                 $record['Phone'] == $data['Contact']['Phone'] &&
                                 $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
                                     $this->integration->getLogger()->debug('match 90% Contact');
-                                    $sfRecords['Contact'] = $record;
+                                    $sfRecords['Contact']['records'] = $record;
                                     $found=true;
                         }
                     }
@@ -206,7 +206,7 @@ class InfojobsSalesApi extends CrmApi {
                                 $record['LastName'] == $data['Contact']['LastName'] && 
                                 $record['Email'] == $data['Contact']['Email'] ) {
                                     $this->integration->getLogger()->debug('match 50% Contact');
-                                    $sfRecords['Contact'] = $record;
+                                    $sfRecords['Contact']['records'] = $record;
                                     $found=true;
                         }
                     }
@@ -218,7 +218,7 @@ class InfojobsSalesApi extends CrmApi {
                                 $record['Phone'] == $data['Contact']['Phone'] &&
                                 $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
                                     $this->integration->getLogger()->debug('match 30% Contact');
-                                    $sfRecords['Contact'] = $record;
+                                    $sfRecords['Contact']['records'] = $record;
                                     $found=true;
                         }
                     }
@@ -229,7 +229,7 @@ class InfojobsSalesApi extends CrmApi {
                                 $record['LastName'] == $data['Contact']['LastName']  
                                 ) {
                                     $this->integration->getLogger()->debug('match 20% Contact');
-                                    $sfRecords['Contact'] = $record;
+                                    $sfRecords['Contact']['records'] = $record;
                                     $found=true;
                         }
                     }

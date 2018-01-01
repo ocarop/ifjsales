@@ -1537,7 +1537,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             $request['compositeRequest'] = array_values($mauticData);
 
             $this->logger->debug('SALESFORCE: pushLeadToCampaign ' . var_export($request, true));
-
+            //TODO: falla en syncMauticToSalesforce
             if (!empty($request)) {
                 $result = $this->getApiHelper()->syncMauticToSalesforce($request);
 
