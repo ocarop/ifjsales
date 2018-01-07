@@ -236,8 +236,10 @@ class InfojobsSalesApi extends CrmApi {
                 }
             }
 
-            //Si no lo hemos encontrado como contacto de esa Account, buscamos entre todos los lead activos y no convertidos
-            if (!$found){
+            //Si no lo hemos encontrado como contacto de esa Account,
+            // buscamos entre todos los lead activos y no convertidos
+            // siempre que tenga nombre de company
+            if (!$found&&$data['Lead']['Company']!='Unknown'){
                 $findLead = 'SELECT Company,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
                         . ' and Company= \'' . $data['Lead']['Company'] . '\'';
                 $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);

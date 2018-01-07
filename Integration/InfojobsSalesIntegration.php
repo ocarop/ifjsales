@@ -368,7 +368,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
 
         if (isset($data['records']) and $object !== 'Activity') {
             foreach ($data['records'] as $record) {
-                $this->logger->debug('SALESFORCE: amendLeadDataBeforeMauticPopulate record ' . var_export($record, true));
+                $this->logger->debug('INFOJOBSSALESFORCE: amendLeadDataBeforeMauticPopulate record ' . var_export($record, true));
                 if (isset($params['progress'])) {
                     $params['progress']->advance();
                 }
@@ -459,7 +459,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             }
 
             unset($data['records']);
-            $this->logger->debug('SALESFORCE: amendLeadDataBeforeMauticPopulate response ' . var_export($data, true));
+            $this->logger->debug('INFOJOBSSALESFORCE: amendLeadDataBeforeMauticPopulate response ' . var_export($data, true));
 
             unset($data);
             $this->persistIntegrationEntities = [];
@@ -662,8 +662,10 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                     'Lead' => [],
                 ];
 
+                $updatedObject='';
                 foreach (['Contact', 'Lead'] as $object) {
-                    if (!empty($existingPersons[$object])) {
+                    //Buscamos primero Contact y luego Lead, siempre que no se ha encontrado como Contact (!personFound)
+                    if (!empty($existingPersons[$object]) && !$personFound) {
                         //Match con person
                         $this->logger->debug("Match con person");
                         $fieldsToUpdate = $mappedData[$object]['update'];
@@ -690,98 +692,104 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                     }
                                 }
                                 $this->logger->debug('update en salesforce id ' . $object); 
+                                //guardar el tipo de object actualizado
+                                $updatedObject=$object;
                                 $personData = $this->getApiHelper()->updateObject($fieldsToUpdate, $object, $person['Id']);
                                 $people[$object][$person['Id']] = $person['Id'];
                             }
                         }
-                    } else {
-                        $this->logger->debug("No hay Match con contact ni lead existente");
-                        //No se ha hecho Match con ningun contact ni lead existente
-                        //Modificacion:
-                        //Se crea Lead si no se ha encontrado ningun match y no tiene AccountId 
-                        //Creamos Contact si no se ha encontrado ningun match y que si existe la cuenta en salesforce
-                        if ('Lead' === $object && !$personFound ) {
-                            //Comprobar si se tiene idAccount en salesforce
-                            if ($accountsalesforceid == '') {
-                                //Si no tiene Account vinculado, entonces se crea un nuevo Lead,
-                                //Si tiene account, entrará en el siguiente if y crearemos como Contact, no como Lead
-                                //TODO: consultar si tb creamos un Account, de momento si que lo haremos
-                                $this->logger->debug("Crear lead " . $mappedData[$object]['Email']);
-                                //Los Lead no están vinculados a Account en salesforce
-                                // por tanto no buscamos la compañia
-
-                                unset($mappedData['Lead']['create']['parentaccountsalesforceid']);                                
-                                $personData = $this->getApiHelper()->createLead($mappedData['Lead']['create']);
-                                $people[$object][$personData['Id']] = $personData['Id'];
-                                $personFound = true;
-                            }
-                        }
-                        if ('Contact' === $object && !$personFound) {
-                            if ($accountsalesforceid != '') {
-                                //Solo crearemos Contact si tenemos el Accountid
-                                //Si no lo tenemos, en el if anterior se habrá creado un Lead
-                                unset($mappedData['Contact']['create']['parentaccountsalesforceid']);
-                                $this->logger->debug("Crear Contact " . $mappedData['Contact']['create']['Email']);
-                                //En este punto AccountId tiene la FK de Account
-                                $personData = $this->getApiHelper()->createObject($mappedData['Contact']['create'], 'Contact');
-                                $people[$object][$personData['Id']] = $personData['Id'];
-                                $personFound = true;                                
-                            }
-                            else{
-                                /* Si quisieramos crear account 
-                                 * sería este código
-                                 * (comentado porque Infojobs no pide crear Account)
-                                if (isset($mappedData['Contact']['create']['Company'])) {
-                                    //En este punto Company tiene el nombre de compañia, buscamos 
-                                    //por nombre a ver si existe
-                                    $accountId = $this->getCompanyName($mappedData['Contact']['create']['Company'], 'Id', 'Name');
-                                    if (!$accountId) {
-                                        //no se encuentra company,
-                                        //crearla en Salesforce requiere que 
-                                        // la compañia esté establecida
-                                        if (isset($config['companyfields'])){
-                                            $this->logger->debug("Crear account en salesforce " . $accountId);
-                                            $companies = $this->leadModel->getCompanies($lead);
-                                            if (!empty($companies)) {
-                                                foreach ($companies as $companyData) {
-                                                    if ($companyData['is_primary']) {
-                                                        $company = $this->companyModel->getEntity($companyData['company_id']);
-                                                    }
-                                                }
-                                            } 
-                                            if ($company) {
-                                                //$company = $this->companyModel->getEntity($company['id']);
-                                                $sfCompany = $this->pushCompany($company);
-                                                if ($sfCompany) {
-                                                    $mappedData['Contact']['create']['AccountId'] = key($sfCompany);
-                                                }
-                                            }
-                                        }    
-                                    } else {
-                                        $this->logger->debug("Account encontrado en salesforce " . $accountId);
-                                        $mappedData['Contact']['create']['AccountId'] = $accountId;
-                                    }
-                                }
-                                */
-                            }
-                        }
-
-                        if (isset($personData['Id'])) {
-                            /** @var IntegrationEntityRepository $integrationEntityRepo */
-                            $integrationEntityRepo = $this->em->getRepository('MauticPluginBundle:IntegrationEntity');
-                            $integrationId = $integrationEntityRepo->getIntegrationsEntityId('Salesforce', $object, 'lead', $lead->getId());
-
-                            $integrationEntity = (empty($integrationId)) ? $this->createIntegrationEntity($object, $personData['Id'], 'lead', $lead->getId(), [], false) :
-                                    $this->em->getReference('MauticPluginBundle:IntegrationEntity', $integrationId[0]['id']);
-
-                            $integrationEntity->setLastSyncDate($this->getLastSyncDate());
-                            $integrationEntityRepo->saveEntity($integrationEntity);
-                        }
                     }
                 }
-                // Return success if any Contact or Lead was updated or created
-                return ($personFound) ? $people : false;
+                if ($personFound){
+                    $object=$updatedObject;
+                }
+                
+                //Hemos buscado por Contact y lead. Si no se ha encontrado
+                //entonces hay que crear un Lead o Contact
+                if (!$personFound) {
+                    $this->logger->debug("No hay Match con contact ni lead existente");
+                    //No se ha hecho Match con ningun contact ni lead existente
+                    //Modificacion:
+                    //Se crea Lead si no se ha encontrado ningun match y no tiene AccountId 
+                    //Creamos Contact si no se ha encontrado ningun match y que si existe la cuenta en salesforce
+                    //Comprobar si se tiene idAccount en salesforce
+                    if ($accountsalesforceid == '') {
+                        //Si no tiene Account vinculado, entonces se crea un nuevo Lead,
+                        //Si tiene account, entrará en el siguiente if y crearemos como Contact, no como Lead
+                        //TODO: consultar si tb creamos un Account, de momento si que lo haremos
+                        $this->logger->debug("Crear lead " . $mappedData[$object]['Email']);
+                        //Los Lead no están vinculados a Account en salesforce
+                        // por tanto no buscamos la compañia
+                        $object='Lead';
+                        unset($mappedData['Lead']['create']['parentaccountsalesforceid']);
+                        $personData = $this->getApiHelper()->createLead($mappedData['Lead']['create']);
+                        $people[$object][$personData['Id']] = $personData['Id'];
+                        $personFound = true;
+                    } else {
+                        //Solo crearemos Contact si tenemos el Accountid
+                        //Si no lo tenemos, en el if anterior se habrá creado un Lead
+                        $object='Contact';
+                        unset($mappedData['Contact']['create']['parentaccountsalesforceid']);
+                        $this->logger->debug("Crear Contact " . $mappedData['Contact']['create']['Email']);
+                        //En este punto AccountId tiene la FK de Account
+                        $personData = $this->getApiHelper()->createObject($mappedData['Contact']['create'], 'Contact');
+                        $people[$object][$personData['Id']] = $personData['Id'];
+                        $personFound = true;
+                    } 
+                        /* Si quisieramos crear account 
+                         * sería este código
+                         * (comentado porque Infojobs no pide crear Account)
+                          if (isset($mappedData['Contact']['create']['Company'])) {
+                          //En este punto Company tiene el nombre de compañia, buscamos
+                          //por nombre a ver si existe
+                          $accountId = $this->getCompanyName($mappedData['Contact']['create']['Company'], 'Id', 'Name');
+                          if (!$accountId) {
+                          //no se encuentra company,
+                          //crearla en Salesforce requiere que
+                          // la compañia esté establecida
+                          if (isset($config['companyfields'])){
+                          $this->logger->debug("Crear account en salesforce " . $accountId);
+                          $companies = $this->leadModel->getCompanies($lead);
+                          if (!empty($companies)) {
+                          foreach ($companies as $companyData) {
+                          if ($companyData['is_primary']) {
+                          $company = $this->companyModel->getEntity($companyData['company_id']);
+                          }
+                          }
+                          }
+                          if ($company) {
+                          //$company = $this->companyModel->getEntity($company['id']);
+                          $sfCompany = $this->pushCompany($company);
+                          if ($sfCompany) {
+                          $mappedData['Contact']['create']['AccountId'] = key($sfCompany);
+                          }
+                          }
+                          }
+                          } else {
+                          $this->logger->debug("Account encontrado en salesforce " . $accountId);
+                          $mappedData['Contact']['create']['AccountId'] = $accountId;
+                          }
+                          }
+                         */
+                    }
+                if (isset($personData['Id'])) {
+                    /** @var IntegrationEntityRepository $integrationEntityRepo */
+                    $integrationEntityRepo = $this->em->getRepository('MauticPluginBundle:IntegrationEntity');
+                    $integrationId = $integrationEntityRepo->getIntegrationsEntityId('InfojobsSales', $object, 'lead', $lead->getId());
+
+                    $integrationEntity = (empty($integrationId)) ? $this->createIntegrationEntity($object, $personData['Id'], 'lead', $lead->getId(), [], false) :
+                            $this->em->getReference('MauticPluginBundle:IntegrationEntity', $integrationId[0]['id']);
+
+                    $integrationEntity->setLastSyncDate($this->getLastSyncDate());
+                    $integrationEntityRepo->saveEntity($integrationEntity);
+                }
             }
+
+
+
+            // Return success if any Contact or Lead was updated or created
+            return ($personFound) ? $people : false;
+            
         } catch (\Exception $e) {
             if ($e instanceof ApiErrorException) {
                 $e->setContact($lead);
@@ -847,7 +855,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                 if (isset($companyData['Id'])) {
                     /** @var IntegrationEntityRepository $integrationEntityRepo */
                     $integrationEntityRepo = $this->em->getRepository('MauticPluginBundle:IntegrationEntity');
-                    $integrationId = $integrationEntityRepo->getIntegrationsEntityId('Salesforce', $object, 'company', $company->getId());
+                    $integrationId = $integrationEntityRepo->getIntegrationsEntityId('InfojobsSales', $object, 'company', $company->getId());
 
                     $integrationEntity = (empty($integrationId)) ? $this->createIntegrationEntity($object, $companyData['Id'], 'lead', $company->getId(), [], false) :
                             $this->em->getReference('MauticPluginBundle:IntegrationEntity', $integrationId[0]['id']);
@@ -946,7 +954,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             $this->logIntegrationError($e);
         }
 
-        $this->logger->debug('SALESFORCE: ' . $this->getApiHelper()->getRequestCounter() . ' API requests made for getLeads: ' . $object);
+        $this->logger->debug('INFOJOBSSALESFORCE: ' . $this->getApiHelper()->getRequestCounter() . ' API requests made for getLeads: ' . $object);
 
         return $executed;
     }
@@ -996,7 +1004,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                     // Get first batch
                     $start = 0;
                     $salesForceIds = $integrationEntityRepo->getIntegrationsEntityId(
-                            'Salesforce', $object, 'lead', null, $startDate->format('Y-m-d H:m:s'), $endDate->format('Y-m-d H:m:s'), true, $start, $limit
+                            'InfojobsSales', $object, 'lead', null, $startDate->format('Y-m-d H:m:s'), $endDate->format('Y-m-d H:m:s'), true, $start, $limit
                     );
                     while (!empty($salesForceIds)) {
                         $executed += count($salesForceIds);
@@ -1014,8 +1022,8 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                 $startDate, $endDate, $leadIds
                         );
 
-                        $this->logger->debug('SALESFORCE: Syncing activity for ' . count($leadActivity) . ' contacts (' . implode(', ', array_keys($leadActivity)) . ')');
-                        $this->logger->debug('SALESFORCE: Syncing activity for ' . var_export($sfIds, true));
+                        $this->logger->debug('INFOJOBSSALESFORCE: Syncing activity for ' . count($leadActivity) . ' contacts (' . implode(', ', array_keys($leadActivity)) . ')');
+                        $this->logger->debug('INFOJOBSSALESFORCE: Syncing activity for ' . var_export($sfIds, true));
 
                         $salesForceLeadData = [];
                         foreach ($salesForceIds as $ids) {
@@ -1026,23 +1034,23 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                 $salesForceLeadData[$sfId]['id'] = $ids['integration_entity_id'];
                                 $salesForceLeadData[$sfId]['leadId'] = $ids['internal_entity_id'];
                                 $salesForceLeadData[$sfId]['leadUrl'] = $this->router->generate(
-                                        'mautic_plugin_timeline_view', ['integration' => 'Salesforce', 'leadId' => $leadId], UrlGeneratorInterface::ABSOLUTE_URL
+                                        'mautic_plugin_timeline_view', ['integration' => 'InfojobsSales', 'leadId' => $leadId], UrlGeneratorInterface::ABSOLUTE_URL
                                 );
                             } else {
-                                $this->logger->debug('SALESFORCE: No activity found for contact ID ' . $leadId);
+                                $this->logger->debug('INFOJOBSSALESFORCE: No activity found for contact ID ' . $leadId);
                             }
                         }
 
                         if (!empty($salesForceLeadData)) {
                             $apiHelper->createLeadActivity($salesForceLeadData, $object);
                         } else {
-                            $this->logger->debug('SALESFORCE: No contact activity to sync');
+                            $this->logger->debug('INFOJOBSSALESFORCE: No contact activity to sync');
                         }
 
                         // Get the next batch
                         $start += $limit;
                         $salesForceIds = $integrationEntityRepo->getIntegrationsEntityId(
-                                'Salesforce', $object, 'lead', null, $startDate->format('Y-m-d H:m:s'), $endDate->format('Y-m-d H:m:s'), true, $start, $limit
+                                'InfojobsSales', $object, 'lead', null, $startDate->format('Y-m-d H:m:s'), $endDate->format('Y-m-d H:m:s'), true, $start, $limit
                         );
                     }
                 }
@@ -1099,11 +1107,11 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
         // Get a total number of contacts to be updated and/or created for the progress counter
         $totalToUpdate = array_sum(
                 $integrationEntityRepo->findLeadsToUpdate(
-                        'Salesforce', 'lead', $mauticLeadFieldString, false, $fromDate, $toDate, $supportedObjects, []
+                        'InfojobsSales', 'lead', $mauticLeadFieldString, false, $fromDate, $toDate, $supportedObjects, []
                 )
         );
         $totalToCreate = (in_array('Lead', $supportedObjects)) ? $integrationEntityRepo->findLeadsToCreate(
-                        'Salesforce', $mauticLeadFieldString, false, $fromDate, $toDate
+                        'InfojobsSales', $mauticLeadFieldString, false, $fromDate, $toDate
                 ) : 0;
         $totalCount = $totalToProcess = $totalToCreate + $totalToUpdate;
 
@@ -1210,7 +1218,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             $output->writeln('');
         }
 
-        $this->logger->debug('SALESFORCE: ' . $this->getApiHelper()->getRequestCounter() . ' API requests made for pushLeads');
+        $this->logger->debug('INFOJOBSSALESFORCE: ' . $this->getApiHelper()->getRequestCounter() . ' API requests made for pushLeads');
 
         // Assume that those not touched are ignored due to not having matching fields, duplicates, etc
         $totalIgnored = $totalToProcess - ($totalUpdated + $totalCreated + $totalErrors);
@@ -1230,14 +1238,14 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
         if (isset($config['objects'])) {
             //try searching for lead as this has been changed before in updated done to the plugin
             if (false !== array_search('Contact', $config['objects'])) {
-                $resultContact = $integrationEntityRepo->getIntegrationsEntityId('Salesforce', 'Contact', 'lead', $lead->getId());
+                $resultContact = $integrationEntityRepo->getIntegrationsEntityId('InfojobsSales', 'Contact', 'lead', $lead->getId());
 
                 if ($resultContact) {
                     return $resultContact;
                 }
             }
         }
-        $resultLead = $integrationEntityRepo->getIntegrationsEntityId('Salesforce', 'Lead', 'lead', $lead->getId());
+        $resultLead = $integrationEntityRepo->getIntegrationsEntityId('InfojobsSales', 'Lead', 'lead', $lead->getId());
 
         return $resultLead;
     }
@@ -1324,12 +1332,12 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             //update lead/contact records
             $listOfLeads = implode('", "', array_keys($leadList));
             $listOfLeads = '"' . $listOfLeads . '"';
-            $leads = $integrationEntityRepo->getIntegrationsEntityId('Salesforce', 'Lead', 'lead', null, null, null, false, 0, 0, $listOfLeads);
+            $leads = $integrationEntityRepo->getIntegrationsEntityId('InfojobsSales', 'Lead', 'lead', null, null, null, false, 0, 0, $listOfLeads);
 
             $listOfContacts = implode('", "', array_keys($contactList));
             $listOfContacts = '"' . $listOfContacts . '"';
             $contacts = $integrationEntityRepo->getIntegrationsEntityId(
-                    'Salesforce', 'Contact', 'lead', null, null, null, false, 0, 0, $listOfContacts
+                    'InfojobsSales', 'Contact', 'lead', null, null, null, false, 0, 0, $listOfContacts
             );
 
             if (!empty($leads)) {
@@ -1383,12 +1391,12 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                 $internalLeadIds = implode('", "', $allCampaignMembers);
                 $internalLeadIds = '"' . $internalLeadIds . '"';
                 $leads = $integrationEntityRepo->getIntegrationsEntityId(
-                        'Salesforce', null, 'lead', null, null, null, false, 0, 0, $internalLeadIds
+                        'InfojobsSales', null, 'lead', null, null, null, false, 0, 0, $internalLeadIds
                 );
                 //first find existing campaign members.
                 foreach ($leads as $campaignMember) {
                     $existingCampaignMember = $integrationEntityRepo->getIntegrationsEntityId(
-                            'Salesforce', 'CampaignMember', 'lead', $campaignMember['internal_entity_id']
+                            'InfojobsSales', 'CampaignMember', 'lead', $campaignMember['internal_entity_id']
                     );
                     if (empty($existingCampaignMember)) {
                         $persistEntities[] = $this->createIntegrationEntity(
@@ -1494,7 +1502,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
 
                 if (isset($campaignMembers[$memberId])) {
                     $existingCampaignMember = $integrationEntityRepo->getIntegrationsEntityId(
-                            'Salesforce', 'CampaignMember', 'lead', null, null, null, false, 0, 0, "'" . $campaignMembers[$memberId] . "'"
+                            'InfojobsSales', 'CampaignMember', 'lead', null, null, null, false, 0, 0, "'" . $campaignMembers[$memberId] . "'"
                     );
                     if ($existingCampaignMember) {
                         foreach ($existingCampaignMember as $member) {
@@ -1536,7 +1544,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             $request['allOrNone'] = 'false';
             $request['compositeRequest'] = array_values($mauticData);
 
-            $this->logger->debug('SALESFORCE: pushLeadToCampaign ' . var_export($request, true));
+            $this->logger->debug('INFOJOBSSALESFORCE: pushLeadToCampaign ' . var_export($request, true));
             //TODO: falla en syncMauticToSalesforce
             if (!empty($request)) {
                 $result = $this->getApiHelper()->syncMauticToSalesforce($request);
@@ -1574,7 +1582,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
     ) {
         // Fetch them separately so we can determine if Leads are already Contacts
         $toUpdate = $this->getIntegrationEntityRepository()->findLeadsToUpdate(
-                        'Salesforce', 'lead', $mauticLeadFieldString, $limit, $fromDate, $toDate, $sfObject
+                        'InfojobsSales', 'lead', $mauticLeadFieldString, $limit, $fromDate, $toDate, $sfObject
                 )[$sfObject];
 
         $toUpdateCount = count($toUpdate);
@@ -1594,7 +1602,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                             'MauticPluginBundle:IntegrationEntity', $lead['id']
                     );
                     $this->deleteIntegrationEntities[] = $integrationEntity;
-                    $this->logger->debug('SALESFORCE: Converted lead ' . $lead['email']);
+                    $this->logger->debug('INFOJOBSSALESFORCE: Converted lead ' . $lead['email']);
                 } else {
                     $this->setContactToSync($checkEmailsInSF, $lead);
                 }
@@ -1623,7 +1631,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
     ) {
         $integrationEntityRepo = $this->getIntegrationEntityRepository();
         $leadsToCreate = $integrationEntityRepo->findLeadsToCreate(
-                'Salesforce', $mauticLeadFieldString, $limit, $fromDate, $toDate
+                'InfojobsSales', $mauticLeadFieldString, $limit, $fromDate, $toDate
         );
         $totalCount -= count($leadsToCreate);
         $foundContacts = [];
@@ -1774,7 +1782,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                     ],
                 ];
 
-                //$this->logger->debug('SALESFORCE: Composite '.$method.' subrequest: '.$entity['email']);
+                //$this->logger->debug('INFOJOBSSALESFORCE: Composite '.$method.' subrequest: '.$entity['email']);
             }
         }
 
@@ -2118,7 +2126,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                     $checkEmailsInSF[$key]['id'] = $integrationEntity;
                 }
 
-                $this->logger->debug('SALESFORCE: Converted lead ' . $sfEntityRecord['Email']);
+                $this->logger->debug('INFOJOBSSALESFORCE: Converted lead ' . $sfEntityRecord['Email']);
 
                 // skip if this is a Lead object since it'll be handled with the Contact entry
                 if ('Lead' === $sfObject) {
@@ -2197,7 +2205,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                 $mauticData, $objectFields[$lead['integration_entity']], $lead['integration_entity'], $lead, $lead['integration_entity_id']
                         )
                 ) {
-                    $this->logger->debug('SALESFORCE: Contact has existing ID so updating ' . $lead['email']);
+                    $this->logger->debug('INFOJOBSSALESFORCE: Contact has existing ID so updating ' . $lead['email']);
                 }
             } else {
                 $this->buildCompositeBody(
@@ -2234,7 +2242,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             if ($chunk) {
                 $request['compositeRequest'] = $chunk;
                 $result = $apiHelper->syncMauticToSalesforce($request);
-                $this->logger->debug('SALESFORCE: Sync Composite  ' . var_export($request, true));
+                $this->logger->debug('INFOJOBSSALESFORCE: Sync Composite  ' . var_export($request, true));
                 $this->processCompositeResponse($result['compositeResponse'], $totalUpdated, $totalCreated, $totalErrored);
             }
         }
@@ -2505,11 +2513,11 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
         // Get a total number of companies to be updated and/or created for the progress counter
         $totalToUpdate = array_sum(
                 $integrationEntityRepo->findLeadsToUpdate(
-                        'Salesforce', 'company', $mauticCompanyFieldString, false, $fromDate, $toDate, $sfObject, []
+                        'InfojobsSales', 'company', $mauticCompanyFieldString, false, $fromDate, $toDate, $sfObject, []
                 )
         );
         $totalToCreate = $integrationEntityRepo->findLeadsToCreate(
-                'Salesforce', $mauticCompanyFieldString, false, $fromDate, $toDate, 'company'
+                'InfojobsSales', $mauticCompanyFieldString, false, $fromDate, $toDate, 'company'
         );
 
         $totalCount = $totalToProcess = $totalToCreate + $totalToUpdate;
@@ -2597,7 +2605,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             $output->writeln('');
         }
 
-        $this->logger->debug('SALESFORCE: ' . $this->getApiHelper()->getRequestCounter() . ' API requests made for pushCompanies');
+        $this->logger->debug('INFOJOSSALESFORCE: ' . $this->getApiHelper()->getRequestCounter() . ' API requests made for pushCompanies');
 
         // Assume that those not touched are ignored due to not having matching fields, duplicates, etc
         $totalIgnored = $totalToProcess - ($totalUpdated + $totalCreated + $totalErrors);
@@ -2714,7 +2722,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                 $mauticData, $objectFields['company'], $company['integration_entity'], $company, $company['integration_entity_id']
                         )
                 ) {
-                    $this->logger->debug('SALESFORCE: Company has existing ID so updating ' . $company['integration_entity_id']);
+                    $this->logger->debug('INFOJOBSSALESFORCE: Company has existing ID so updating ' . $company['integration_entity_id']);
                 }
             } else {
                 $this->buildCompositeBody(
@@ -2744,7 +2752,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
     ) {
         // Fetch them separately so we can determine if Leads are already Contacts
         $toUpdate = $this->getIntegrationEntityRepository()->findLeadsToUpdate(
-                        'Salesforce', $internalEntity, $mauticEntityFieldString, $limit, $fromDate, $toDate, $sfObject
+                        'InfojobsSales', $internalEntity, $mauticEntityFieldString, $limit, $fromDate, $toDate, $sfObject
                 )[$sfObject];
 
         $toUpdateCount = count($toUpdate);
@@ -2773,7 +2781,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
     ) {
         $integrationEntityRepo = $this->getIntegrationEntityRepository();
         $entitiesToCreate = $integrationEntityRepo->findLeadsToCreate(
-                'Salesforce', $mauticCompanyFieldString, $limit, $fromDate, $toDate, 'company'
+                'InfojobsSales', $mauticCompanyFieldString, $limit, $fromDate, $toDate, 'company'
         );
         $totalCount -= count($entitiesToCreate);
 
