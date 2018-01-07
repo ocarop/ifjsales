@@ -111,39 +111,39 @@ class InfojobsSalesApi extends CrmApi {
             'Contact' => [],
             'Lead' => [],
         ];
-        
-        
-        $accountsalesforceid='';
-        
+
+
+        $accountsalesforceid = '';
+
         //buscar todos los contactos del Account
- 
-        
-        
-        if (!empty($data['Contact']['AccountId'])){
+
+
+
+        if (!empty($data['Contact']['AccountId'])) {
             $this->integration->getLogger()->debug('Contact salesforce account id ' . $data['Contact']['AccountId']);
-            $accountsalesforceid=$data['Contact']['AccountId'];
-        }
-        else{
-            if (!empty($data['Lead']['AccountId'])){
+            $accountsalesforceid = $data['Contact']['AccountId'];
+        } else {
+            if (!empty($data['Lead']['AccountId'])) {
                 $this->integration->getLogger()->debug('Lead salesforce account id ' . $data['Contact']['AccountId']);
-                $accountsalesforceid=$data['Lead']['AccountId'];
+                $accountsalesforceid = $data['Lead']['AccountId'];
             }
         }
-        
-        
-        
-        if ($accountsalesforceid!='') {
+
+        if (!is_numeric($accountsalesforceid))
+            $accountsalesforceid = '';
+
+        if ($accountsalesforceid != '') {
             //Verificar que la cuenta existe
             $findAccount = 'SELECT Id FROM Account where Id = \''
                     . $accountsalesforceid . '\'';
             $response = $this->request('query', ['q' => $findAccount], 'GET', false, null, $queryUrl);
-            if (empty($response['records'])){
-                $this->integration->getLogger()->debug('AccountId incorrecto' .  $accountsalesforceid);
-                $accountsalesforceid='';
+            if (empty($response['records'])) {
+                $this->integration->getLogger()->debug('AccountId incorrecto' . $accountsalesforceid);
+                $accountsalesforceid = '';
             }
         }
-        
-        if ($accountsalesforceid!=''){
+
+        if ($accountsalesforceid != '') {
             $findContact = 'SELECT Id, FirstName, LastName, SegundoApellido__c,Email,'
                     . 'Phone,MobilePhone FROM Contact where Account.Id = \''
                     . $accountsalesforceid . '\''
@@ -151,200 +151,200 @@ class InfojobsSalesApi extends CrmApi {
                     . ' and LastName = \'' . $data['Contact']['LastName'] . '\'';
             $response = $this->request('query', ['q' => $findContact], 'GET', false, null, $queryUrl);
 
-            
-            $found=false;
+
+            $found = false;
             if (!empty($response['records'])) {
                 //Recorrer todos los contactos del Account y tratamos de hacer match con Contact
                 foreach ($response['records'] as $record) {
                     //Evaluar los criterios de matching
                     /*
-                        • 100% - Contact -> Daremos por match 100% un contacto cuando: 
-                            ◦ Email + Phone + FirstName + LastName + MobilePhone + SegundoApellido
-                        • 90% - Contact -> Daremos por match 90% un contacto cuando:
-                            ◦ Email + FirstName + LastName + MobilePhone + Phone
-                        • 50% - Contact -> Daremos por match 50% un contacto cuando:
-                            ◦ Email + FirstName + LastName
-                        • 30% - Contact -> Daremos por match 30% un contacto cuando:
-                            ◦ FirstName + LastName + MobilePhone + Phone
-                        • 20% - Contact -> Daremos por match 20% un contacto cuando:
-                            ◦ FirstName + LastName
+                      • 100% - Contact -> Daremos por match 100% un contacto cuando:
+                      ◦ Email + Phone + FirstName + LastName + MobilePhone + SegundoApellido
+                      • 90% - Contact -> Daremos por match 90% un contacto cuando:
+                      ◦ Email + FirstName + LastName + MobilePhone + Phone
+                      • 50% - Contact -> Daremos por match 50% un contacto cuando:
+                      ◦ Email + FirstName + LastName
+                      • 30% - Contact -> Daremos por match 30% un contacto cuando:
+                      ◦ FirstName + LastName + MobilePhone + Phone
+                      • 20% - Contact -> Daremos por match 20% un contacto cuando:
+                      ◦ FirstName + LastName
                      * 
                      */
-                    
+
                     // 100% - Contact -> Daremos por match 100% un contacto cuando: 
                     // Email + Phone + FirstName + LastName + MobilePhone + SegundoApellido
 
                     if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                            $record['LastName'] == $data['Contact']['LastName'] && 
+                            $record['LastName'] == $data['Contact']['LastName'] &&
                             $record['Email'] == $data['Contact']['Email'] &&
                             $record['Phone'] == $data['Contact']['Phone'] &&
                             $record['MobilePhone'] == $data['Contact']['MobilePhone'] &&
                             $record['SegundoApellido__c'] == $data['Contact']['SegundoApellido']) {
-                        if (!$found){
+                        if (!$found) {
                             $this->integration->getLogger()->debug('match 100% Contact');
                             $sfRecords['Contact']['records'] = $record;
-                            $found=true;
-                        }    
+                            $found = true;
+                        }
                     }
                     // 90% - Contact -> Daremos por match 90% un contacto cuando:
                     // Email + FirstName + LastName + MobilePhone + Phone                    
-                    if (!$found){
+                    if (!$found) {
                         if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                                $record['LastName'] == $data['Contact']['LastName'] && 
-                                $record['Email'] == $data['Contact']['LastName'] && 
+                                $record['LastName'] == $data['Contact']['LastName'] &&
+                                $record['Email'] == $data['Contact']['LastName'] &&
                                 $record['Phone'] == $data['Contact']['Phone'] &&
                                 $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
-                                    $this->integration->getLogger()->debug('match 90% Contact');
-                                    $sfRecords['Contact']['records'] = $record;
-                                    $found=true;
+                            $this->integration->getLogger()->debug('match 90% Contact');
+                            $sfRecords['Contact']['records'] = $record;
+                            $found = true;
                         }
                     }
                     // 50% - Contact -> Daremos por match 50% un contacto cuando:
                     // Email + FirstName + LastName
-                    if (!$found){
+                    if (!$found) {
                         if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                                $record['LastName'] == $data['Contact']['LastName'] && 
-                                $record['Email'] == $data['Contact']['Email'] ) {
-                                    $this->integration->getLogger()->debug('match 50% Contact');
-                                    $sfRecords['Contact']['records'] = $record;
-                                    $found=true;
+                                $record['LastName'] == $data['Contact']['LastName'] &&
+                                $record['Email'] == $data['Contact']['Email']) {
+                            $this->integration->getLogger()->debug('match 50% Contact');
+                            $sfRecords['Contact']['records'] = $record;
+                            $found = true;
                         }
                     }
                     //30% - Contact -> Daremos por match 30% un contacto cuando:
                     // FirstName + LastName + MobilePhone + Phone
-                    if (!$found){
+                    if (!$found) {
                         if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                                $record['LastName'] == $data['Contact']['LastName'] && 
+                                $record['LastName'] == $data['Contact']['LastName'] &&
                                 $record['Phone'] == $data['Contact']['Phone'] &&
                                 $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
-                                    $this->integration->getLogger()->debug('match 30% Contact');
-                                    $sfRecords['Contact']['records'] = $record;
-                                    $found=true;
+                            $this->integration->getLogger()->debug('match 30% Contact');
+                            $sfRecords['Contact']['records'] = $record;
+                            $found = true;
                         }
                     }
                     // Contact -> Daremos por match 20% un contacto cuando:
                     //FirstName + LastName
-                    if (!$found){
+                    if (!$found) {
                         if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                                $record['LastName'] == $data['Contact']['LastName']  
-                                ) {
-                                    $this->integration->getLogger()->debug('match 20% Contact');
-                                    $sfRecords['Contact']['records'] = $record;
-                                    $found=true;
+                                $record['LastName'] == $data['Contact']['LastName']
+                        ) {
+                            $this->integration->getLogger()->debug('match 20% Contact');
+                            $sfRecords['Contact']['records'] = $record;
+                            $found = true;
                         }
                     }
                 }
             }
+        }
 
-            //Si no lo hemos encontrado como contacto de esa Account,
-            // buscamos entre todos los lead activos y no convertidos
-            // siempre que tenga nombre de company
-            if (!$found&&$data['Lead']['Company']!='Unknown'){
-                $findLead = 'SELECT Company,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
-                        . ' and Company= \'' . $data['Lead']['Company'] . '\'';
-                $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
-                foreach ($response['records'] as $record) {
-                    /*/* TODO: Revisar: Evaluar los criterios de matching
-Se busca el lead por -> Identificador Fiscal
-                     * 
-                     */
-                    if (!$found){                     
-                        //Si no se encuentra un lead con ese Identificador Fiscal, entonces se busca por: Company + Email + Name + Phone
-                        //TODO: comprobar que esta establecido cada campo
-                        if (isset($data['Lead']['Company']) &&
-                                $record['Company'] == $data['Lead']['Company'] &&
-                                record['FirstName'] == $data['Lead']['FirstName'] &&
-                                record['LastName'] == $data['Lead']['LastName'] &&
-                                $record['Email'] == $data['Lead']['Email'] &&
-                                $record['Phone'] == $data['Lead']['Phone']
-                                ) {
-                                    $this->integration->getLogger()->debug('match Lead por company+email+name+phone'); 
-                                    $sfRecords['Lead'] = $record;
-                                    $found=true;
-                        }
+        //Si no lo hemos encontrado como contacto de esa Account,
+        // buscamos entre todos los lead activos y no convertidos
+        // siempre que tenga nombre de company
+        if (!$found && $data['Lead']['Company'] != 'Unknown') {
+            $findLead = 'SELECT Id,Company,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
+                    . ' and Company= \'' . $data['Lead']['Company'] . '\'';
+            $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
+            foreach ($response['records'] as $record) {
+                /* /* TODO: Revisar: Evaluar los criterios de matching
+                  Se busca el lead por -> Identificador Fiscal
+                 * 
+                 */
+                if (!$found) {
+                    //Si no se encuentra un lead con ese Identificador Fiscal, entonces se busca por: Company + Email + Name + Phone
+                    //TODO: comprobar que esta establecido cada campo
+                    if (isset($data['Lead']['Company']) &&
+                            $record['Company'] == $data['Lead']['Company'] &&
+                            record['FirstName'] == $data['Lead']['FirstName'] &&
+                            record['LastName'] == $data['Lead']['LastName'] &&
+                            $record['Email'] == $data['Lead']['Email'] &&
+                            $record['Phone'] == $data['Lead']['Phone']
+                    ) {
+                        $this->integration->getLogger()->debug('match Lead por company+email+name+phone');
+                        $sfRecords['Lead']['records'] = $record;
+                        $found = true;
                     }
-                    if (!$found){                     
-                        //Si no se encuentra un lead match 90%, entonces se busca por: Company + Email + Name
-                        if (isset($data['Lead']['Company']) &&
-                                $record['Company'] == $data['Lead']['Company'] &&
-                                record['FirstName'] == $data['Lead']['FirstName'] &&
-                                record['LastName'] == $data['Lead']['LastName'] &&
-                                $record['Email'] == $data['Lead']['Email'] 
-                                ) {
-                                    $this->integration->getLogger()->debug('match Lead por company+mail+name'); 
-                                    $sfRecords['Lead'] = $record;
-                                    $found=true;
-                        }                        
-                    } 
-                    if (!$found){                     
-                        //Si no se encuentra un lead match 80%, entonces se busca por: Company + Email
-                        if (isset($data['Lead']['Company']) &&
-                                $record['Company'] == $data['Lead']['Company'] &&
-                                $record['Email'] == $data['Lead']['Email']
-                                ) {
-                                    $this->integration->getLogger()->debug('match Lead por company+email'); 
-                                    $sfRecords['Lead'] = $record;
-                                    $found=true;
-                        }                        
-                    } 
-                    if (!$found){                     
-                        //Si no se encuentra un lead match 60%, entonces se busca por: Company + Phone
-                        if (isset($data['Lead']['Company']) &&
-                                $record['Company'] == $data['Lead']['Company'] &&
-                                $record['Phone'] == $data['Lead']['Phone']
-                                ) {
-                                    $this->integration->getLogger()->debug('match Lead por company+phone'); 
-                                    $sfRecords['Lead'] = $record;
-                                    $found=true;
-                        }                        
-                    } 
-                    if (!$found){                     
-                        //Si no se encuentra un lead match 50%, entonces se busca por: Company                   
-                        if (isset($data['Lead']['Company']) &&   
+                }
+                if (!$found) {
+                    //Si no se encuentra un lead match 90%, entonces se busca por: Company + Email + Name
+                    if (isset($data['Lead']['Company']) &&
+                            $record['Company'] == $data['Lead']['Company'] &&
+                            record['FirstName'] == $data['Lead']['FirstName'] &&
+                            record['LastName'] == $data['Lead']['LastName'] &&
+                            $record['Email'] == $data['Lead']['Email']
+                    ) {
+                        $this->integration->getLogger()->debug('match Lead por company+mail+name');
+                        $sfRecords['Lead']['records'] = $record;
+                        $found = true;
+                    }
+                }
+                if (!$found) {
+                    //Si no se encuentra un lead match 80%, entonces se busca por: Company + Email
+                    if (isset($data['Lead']['Company']) &&
+                            $record['Company'] == $data['Lead']['Company'] &&
+                            $record['Email'] == $data['Lead']['Email']
+                    ) {
+                        $this->integration->getLogger()->debug('match Lead por company+email');
+                        $sfRecords['Lead']['records'] = $record;
+                        $found = true;
+                    }
+                }
+                if (!$found) {
+                    //Si no se encuentra un lead match 60%, entonces se busca por: Company + Phone
+                    if (isset($data['Lead']['Company']) &&
+                            $record['Company'] == $data['Lead']['Company'] &&
+                            $record['Phone'] == $data['Lead']['Phone']
+                    ) {
+                        $this->integration->getLogger()->debug('match Lead por company+phone');
+                        $sfRecords['Lead']['records'] = $record;
+                        $found = true;
+                    }
+                }
+                if (!$found) {
+                    //Si no se encuentra un lead match 50%, entonces se busca por: Company                   
+                    if (isset($data['Lead']['Company']) &&
                             $record['Company'] == $data['Lead']['Company']) {
-                            $this->integration->getLogger()->debug('match Lead por company'); 
-                            $sfRecords['Lead'] = $record;
-                            $found=true;
-                        }                        
-                    } 
-                }
-            }
-        }    
-        
-        /*try searching for lead as this has been changed before in updated done to the plugin
-        if (isset($config['objects']) && false !== array_search('Contact', $config['objects']) && !empty($data['Contact']['Email'])) {
-            $fields = $this->integration->getFieldsForQuery('Contact');
-            $fields[] = 'Id';
-            $fields = implode(', ', array_unique($fields));
-            $findContact = 'select ' . $fields . ' from Contact where email = \'' . str_replace("'", "\'", $this->integration->cleanPushData($data['Contact']['Email'])) . '\'';
-            $response = $this->request('query', ['q' => $findContact], 'GET', false, null, $queryUrl);
-
-            if (!empty($response['records'])) {
-                $sfRecords['Contact'] = $response['records'];
-            }
-        }
-
-        if (isset($data['Lead']['identificadorFiscal__c'])) {
-            $sfObject = 'Lead';
-            //$sfRecord['records']['record']['Id']= $data['Lead']['Id'];
-            $sfRecords['Lead']['record']['Id'] = $data['Lead']['identificadorFiscal__c'];
-            unset($data[$sfObject]['identificadorFiscal__c']);
-            unset($data[$sfObject]['Email']);
-        } else {
-            if (!empty($data['Lead']['Email'])) {
-                $fields = $this->integration->getFieldsForQuery('Lead');
-                $fields[] = 'Id';
-                $fields = implode(', ', array_unique($fields));
-                $findLead = 'select ' . $fields . ' from Lead where email = \'' . str_replace("'", "\'", $this->integration->cleanPushData($data['Lead']['Email'])) . '\' and ConvertedContactId = NULL';
-                $response = $this->request('queryAll', ['q' => $findLead], 'GET', false, null, $queryUrl);
-
-                if (!empty($response['records'])) {
-                    $sfRecords['Lead'] = $response['records'];
+                        $this->integration->getLogger()->debug('match Lead por company');
+                        $sfRecords['Lead']['records'] = $record;
+                        $found = true;
+                    }
                 }
             }
         }
+
+        /* try searching for lead as this has been changed before in updated done to the plugin
+          if (isset($config['objects']) && false !== array_search('Contact', $config['objects']) && !empty($data['Contact']['Email'])) {
+          $fields = $this->integration->getFieldsForQuery('Contact');
+          $fields[] = 'Id';
+          $fields = implode(', ', array_unique($fields));
+          $findContact = 'select ' . $fields . ' from Contact where email = \'' . str_replace("'", "\'", $this->integration->cleanPushData($data['Contact']['Email'])) . '\'';
+          $response = $this->request('query', ['q' => $findContact], 'GET', false, null, $queryUrl);
+
+          if (!empty($response['records'])) {
+          $sfRecords['Contact'] = $response['records'];
+          }
+          }
+
+          if (isset($data['Lead']['identificadorFiscal__c'])) {
+          $sfObject = 'Lead';
+          //$sfRecord['records']['record']['Id']= $data['Lead']['Id'];
+          $sfRecords['Lead']['record']['Id'] = $data['Lead']['identificadorFiscal__c'];
+          unset($data[$sfObject]['identificadorFiscal__c']);
+          unset($data[$sfObject]['Email']);
+          } else {
+          if (!empty($data['Lead']['Email'])) {
+          $fields = $this->integration->getFieldsForQuery('Lead');
+          $fields[] = 'Id';
+          $fields = implode(', ', array_unique($fields));
+          $findLead = 'select ' . $fields . ' from Lead where email = \'' . str_replace("'", "\'", $this->integration->cleanPushData($data['Lead']['Email'])) . '\' and ConvertedContactId = NULL';
+          $response = $this->request('queryAll', ['q' => $findLead], 'GET', false, null, $queryUrl);
+
+          if (!empty($response['records'])) {
+          $sfRecords['Lead'] = $response['records'];
+          }
+          }
+          }
          */
-        
+
         return $sfRecords;
     }
 
