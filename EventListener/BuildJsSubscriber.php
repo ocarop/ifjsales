@@ -153,8 +153,11 @@ MauticJS.autocompleteIfj = function () {
         return false;
       }
     }).autocomplete("instance")._renderItem = function(ul, item) {
-      return jQuery("<li>")
-        .append(item.RAZON_SOCIAL)
+      return 
+        jQuery("<div class='ui-menu-item-wrapper'>")
+        .append(    
+        jQuery("<li>")
+        .append(item.RAZON_SOCIAL))
         .appendTo(ul);
     };
   }

@@ -716,7 +716,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                     if ($accountsalesforceid == '') {
                         //Si no tiene Account vinculado, entonces se crea un nuevo Lead,
                         //Si tiene account, entrará en el siguiente if y crearemos como Contact, no como Lead
-                        //TODO: consultar si tb creamos un Account, de momento si que lo haremos
+                        //TODO: consultar si tb creamos un Account, de momento no lo haremos
                         $this->logger->debug("Crear lead " . $mappedData[$object]['Email']);
                         //Los Lead no están vinculados a Account en salesforce
                         // por tanto no buscamos la compañia
@@ -1545,7 +1545,6 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             $request['compositeRequest'] = array_values($mauticData);
 
             $this->logger->debug('INFOJOBSSALESFORCE: pushLeadToCampaign ' . var_export($request, true));
-            //TODO: falla en syncMauticToSalesforce
             if (!empty($request)) {
                 $result = $this->getApiHelper()->syncMauticToSalesforce($request);
 
