@@ -131,16 +131,23 @@ class InfojobsSalesApi extends CrmApi {
         $this->integration->getLogger()->warn ('getPerson $accountsalesforceid ' . $accountsalesforceid);
         
         //TODO: repasar esta configuracion
-        if (!is_numeric($accountsalesforceid))
-            $accountsalesforceid = '';
+        //if (!is_numeric($accountsalesforceid))
+        //    $accountsalesforceid = '';
 
         if ($accountsalesforceid != '') {
             //Verificar que la cuenta existe
-            $findAccount = 'SELECT Id FROM Account where Id = \''
-                    . $accountsalesforceid . '\'';
-            $response = $this->request('query', ['q' => $findAccount], 'GET', false, null, $queryUrl);
-            if (empty($response['records'])) {
-                $this->integration->getLogger()->error('AccountId incorrecto' . $accountsalesforceid);
+            //$findAccount = 'SELECT Id FROM Account where Id = \''
+            //        . $accountsalesforceid . '\'';
+            //$response = $this->request('query', ['q' => $findAccount], 'GET', false, null, $queryUrl);
+            //$operation, $elementData = [], $method = 'GET', $retry = false, $object = null, $queryUrl = null
+            try{
+                $response = $this->request($accountsalesforceid, [], 'GET', false, 'Account');
+                if (empty($response['Id'])) {
+                    $this->integration->getLogger()->warn('AccountId incorrecto' . $accountsalesforceid);
+                    $accountsalesforceid = '';
+                }
+            } catch (\Exception $e) {
+                $this->integration->getLogger()->warn('AccountId incorrecto exception ' . $accountsalesforceid);
                 $accountsalesforceid = '';
             }
         }
