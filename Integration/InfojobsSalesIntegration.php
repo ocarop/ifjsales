@@ -630,12 +630,6 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
             $leadId = $lead['id'];
         }
         
-        /*
-        $this->logger->error("list de fields " );
-        foreach ($fields as $item) {
-            $this->logger->error($item['alias']);
-        } 
-         */
          
         //Guardamos para cada contact o lead que venga de los formularios, la
         //clave que tiene el Account en salesforce.
@@ -675,8 +669,8 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                 foreach (['Contact', 'Lead'] as $object) {
                     //Buscamos primero Contact y luego Lead, siempre que no se ha encontrado como Contact (!personFound)
                     if (!empty($existingPersons[$object]) && !$personFound) {
-                        //Match con person
-                        $this->logger->error("Match con person");
+                        //Match con person                        
+                        $this->logger->warning("Match con person " . $object);
                         $fieldsToUpdate = $mappedData[$object]['update'];
                         $fieldsToUpdate = $this->getBlankFieldsToUpdate($fieldsToUpdate, $existingPersons[$object], $mappedData, $config);
                         $personFound = true;
@@ -688,6 +682,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                     $accountId = $this->getCompanyName($fieldsToUpdate['AccountId'], 'Id', 'Name');
                                     if (!$accountId) {
                                         //company was not found so create a new company in Salesforce
+                                        $this->logger->error('creando company. REVISAR!!');
                                         $company = $lead->getPrimaryCompany();
                                         if (!empty($company)) {
                                             $company = $this->companyModel->getEntity($company['id']);
@@ -700,7 +695,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                         $fieldsToUpdate['AccountId'] = $accountId;
                                     }
                                 }
-                                $this->logger->debug('update en salesforce id ' . $object); 
+                                $this->logger->warning('update en salesforce id ' . $object); 
                                 //guardar el tipo de object actualizado
                                 $updatedObject=$object;
                                 $personData = $this->getApiHelper()->updateObject($fieldsToUpdate, $object, $person['Id']);
@@ -716,18 +711,18 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                 //Hemos buscado por Contact y lead. Si no se ha encontrado
                 //entonces hay que crear un Lead o Contact
                 if (!$personFound) {
-                    $this->logger->error("No hay Match con contact ni lead existente");
+                    $this->logger->warning("No hay Match con contact ni lead existente");
                     //No se ha hecho Match con ningun contact ni lead existente
                     //Modificacion:
                     //Se crea Lead si no se ha encontrado ningun match y no tiene AccountId 
                     //Creamos Contact si no se ha encontrado ningun match y que si existe la cuenta en salesforce
                     //Comprobar si se tiene idAccount en salesforce
-                    $this->logger->error("$accountsalesforceid " . $accountsalesforceid);
+                    $this->logger->warning("$accountsalesforceid " . $accountsalesforceid);
                     if ($accountsalesforceid == '') {
                         //Si no tiene Account vinculado, entonces se crea un nuevo Lead,
                         //Si tiene account, entrará en el siguiente if y crearemos como Contact, no como Lead
                         //TODO: consultar si tb creamos un Account, de momento no lo haremos
-                        $this->logger->error("Crear lead " . $mappedData[$object]['Email']);
+                        $this->logger->warning("Crear lead " . $mappedData[$object]['Email']);
                         //Los Lead no están vinculados a Account en salesforce
                         // por tanto no buscamos la compañia
                         $object='Lead';
@@ -740,7 +735,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                         //Si no lo tenemos, en el if anterior se habrá creado un Lead
                         $object='Contact';
                         unset($mappedData['Contact']['create']['parentaccountsalesforceid']);
-                        $this->logger->error("Crear Contact " . $mappedData['Contact']['create']['Email']);
+                        $this->logger->warning("Crear Contact " . $mappedData['Contact']['create']['Email']);
                         //En este punto AccountId tiene la FK de Account
                         $personData = $this->getApiHelper()->createObject($mappedData['Contact']['create'], 'Contact');
                         $people[$object][$personData['Id']] = $personData['Id'];
