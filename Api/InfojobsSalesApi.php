@@ -138,7 +138,7 @@ class InfojobsSalesApi extends CrmApi {
                     . $accountsalesforceid . '\'';
             $response = $this->request('query', ['q' => $findAccount], 'GET', false, null, $queryUrl);
             if (empty($response['records'])) {
-                $this->integration->getLogger()->debug('AccountId incorrecto' . $accountsalesforceid);
+                $this->integration->getLogger()->error('AccountId incorrecto' . $accountsalesforceid);
                 $accountsalesforceid = '';
             }
         }
@@ -217,7 +217,7 @@ class InfojobsSalesApi extends CrmApi {
                                 $record['LastName'] == $data['Contact']['LastName'] &&
                                 $record['Phone'] == $data['Contact']['Phone'] &&
                                 $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
-                            $this->integration->getLogger()->debug('match 30% Contact');
+                            $this->integration->getLogger()->error('match 30% Contact');
                             $sfRecords['Contact']['records'] = $record;
                             $found = true;
                         }
@@ -228,7 +228,7 @@ class InfojobsSalesApi extends CrmApi {
                         if ($record['FirstName'] == $data['Contact']['FirstName'] &&
                                 $record['LastName'] == $data['Contact']['LastName']
                         ) {
-                            $this->integration->getLogger()->debug('match 20% Contact');
+                            $this->integration->getLogger()->error('match 20% Contact');
                             $sfRecords['Contact']['records'] = $record;
                             $found = true;
                         }
@@ -244,6 +244,7 @@ class InfojobsSalesApi extends CrmApi {
             $findLead = 'SELECT Id,Company,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
                     . ' and Company= \'' . $data['Lead']['Company'] . '\'';
             $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
+            $this->integration->getLogger()->error('Buscando lead' );
             foreach ($response['records'] as $record) {
                 /* /* TODO: Revisar: Evaluar los criterios de matching
                   Se busca el lead por -> Identificador Fiscal
