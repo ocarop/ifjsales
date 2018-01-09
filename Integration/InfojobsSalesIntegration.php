@@ -621,14 +621,19 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
 
         $mappedData = $this->mapContactDataForPush($lead, $config);
 
-        //Intentar completar el campo parentaccountsalesforceid
+        //Intentar completar el campo parentaccountsalesforceid                                      
         if ($lead instanceof Lead) {
             $fields = $lead->getFields(true);
             $leadId = $lead->getId();
-        } else {
+        } else {    
             $fields = $lead;
             $leadId = $lead['id'];
         }
+        
+        $this->logger->error("list de fields " );
+        foreach ($fields as $item) {
+            $this->logger->error($item['alias']);
+        }        
         //Guardamos para cada contact o lead que venga de los formularios, la
         //clave que tiene el Account en salesforce.
         //Lo ponemos en el campo AccountId, de mamera que al crear el contact/lead
