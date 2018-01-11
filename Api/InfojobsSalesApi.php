@@ -185,7 +185,7 @@ class InfojobsSalesApi extends CrmApi {
 
                     // 100% - Contact -> Daremos por match 100% un contacto cuando: 
                     // Email + Phone + FirstName + LastName + MobilePhone + SegundoApellido
-
+                    $this->integration->getLogger()->warn ('evaluando reglas de mathc registro de contact' . $record['FirstName']);
                     if ($record['FirstName'] == $data['Contact']['FirstName'] &&
                             $record['LastName'] == $data['Contact']['LastName'] &&
                             $record['Email'] == $data['Contact']['Email'] &&
@@ -263,14 +263,14 @@ class InfojobsSalesApi extends CrmApi {
                       Se busca el lead por -> Identificador Fiscal
                      * 
                      */
-                    $this->integration->getLogger()->warn ('tratando registro de lead de resultados');
+                    $this->integration->getLogger()->warn ('tratando registro de lead de resultados ' . $record['Company']);
                     if (!$found) {
                         //Si no se encuentra un lead con ese Identificador Fiscal, entonces se busca por: Company + Email + Name + Phone
                         //TODO: comprobar que esta establecido cada campo
                         if (isset($data['Lead']['Company']) &&
                                 $record['Company'] == $data['Lead']['Company'] &&
-                                record['FirstName'] == $data['Lead']['FirstName'] &&
-                                record['LastName'] == $data['Lead']['LastName'] &&
+                                $record['FirstName'] == $data['Lead']['FirstName'] &&
+                                $record['LastName'] == $data['Lead']['LastName'] &&
                                 $record['Email'] == $data['Lead']['Email'] &&
                                 $record['Phone'] == $data['Lead']['Phone']
                         ) {
@@ -283,8 +283,8 @@ class InfojobsSalesApi extends CrmApi {
                         //Si no se encuentra un lead match 90%, entonces se busca por: Company + Email + Name
                         if (isset($data['Lead']['Company']) &&
                                 $record['Company'] == $data['Lead']['Company'] &&
-                                record['FirstName'] == $data['Lead']['FirstName'] &&
-                                record['LastName'] == $data['Lead']['LastName'] &&
+                                $record['FirstName'] == $data['Lead']['FirstName'] &&
+                                $record['LastName'] == $data['Lead']['LastName'] &&
                                 $record['Email'] == $data['Lead']['Email']
                         ) {
                             $this->integration->getLogger()->warn('match Lead por company+mail+name');

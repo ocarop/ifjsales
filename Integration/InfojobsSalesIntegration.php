@@ -612,7 +612,8 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
      * @return array|bool
      */
     public function pushLead($lead, $config = []) {
-        $this->logger->debug("InfojobsSalesIntegration: pushLead ($lead) ");
+        $this->logger->warning("-------------------------------------------- ");
+        $this->logger->warning("InfojobsSalesIntegration: pushLead ($lead) ");
         $config = $this->mergeConfigToFeatureSettings($config);
 
         if (empty($config['leadFields'])) {
@@ -638,7 +639,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
         //Tendra valor siempre que el usuario haya seleccionado una empresa del campo autocompletar        
         $accountsalesforceid = '';
         if (isset($fields['parentaccountsalesforceid']) && $fields['parentaccountsalesforceid']['value']) {
-            $this->logger->error('parentaccountsalesforceid encontrado');
+            $this->logger->warning('parentaccountsalesforceid encontrado' . $fields['parentaccountsalesforceid']['value'] );
             $mappedData['Contact']['create']['AccountId'] = $fields['parentaccountsalesforceid']['value'];
             $mappedData['Lead']['create']['AccountId'] = $fields['parentaccountsalesforceid']['value'];
             $accountsalesforceid = $fields['parentaccountsalesforceid']['value'];
