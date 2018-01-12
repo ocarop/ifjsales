@@ -634,14 +634,13 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
          
         //Guardamos para cada contact o lead que venga de los formularios, la
         //clave que tiene el Account en salesforce.
-        //Lo ponemos en el campo AccountId, de mamera que al crear el contact/lead
+        //Lo ponemos en el campo AccountId, de mamera que al crear el contact
         //quedará vinculado con Account, ya que este campo es la clave foranea en Salesforce
         //Tendra valor siempre que el usuario haya seleccionado una empresa del campo autocompletar        
         $accountsalesforceid = '';
         if (isset($fields['parentaccountsalesforceid']) && $fields['parentaccountsalesforceid']['value']) {
             $this->logger->warning('parentaccountsalesforceid encontrado' . $fields['parentaccountsalesforceid']['value'] );
             $mappedData['Contact']['create']['AccountId'] = $fields['parentaccountsalesforceid']['value'];
-            $mappedData['Lead']['create']['AccountId'] = $fields['parentaccountsalesforceid']['value'];
             $accountsalesforceid = $fields['parentaccountsalesforceid']['value'];
         }
 
@@ -659,6 +658,16 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                             'Contact' => $mappedData['Contact']['create'],
                         ]
                 );
+
+                if ($existingPersons[accountIdInvalido]){
+                    //El account es invalido, por tanto lo borro 
+                    //tanto de la variable como en los datos mapeados para contact
+                    $accountsalesforceid='';
+                    unset($mappedData['Contact']['create']['AccountId']);
+                }
+                //Poner siempre el flag Integracion_Mautic__c
+                $mappedData['Contact']['create']['Integracion_Mautic__c'] = true;
+                $mappedData['Lead']['create']['Integracion_Mautic__c'] = true;
 
                 $personFound = false;
                 $people = [

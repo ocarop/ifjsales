@@ -110,10 +110,12 @@ class InfojobsSalesApi extends CrmApi {
         $sfRecords = [
             'Contact' => [],
             'Lead' => [],
+            'accountIdInvalido' => false
         ];
 
 
         $accountsalesforceid = '';
+        $found = false;
 
         //buscar todos los contactos del Account
 
@@ -145,10 +147,12 @@ class InfojobsSalesApi extends CrmApi {
                 if (empty($response['Id'])) {
                     $this->integration->getLogger()->warn('AccountId incorrecto' . $accountsalesforceid);
                     $accountsalesforceid = '';
+                    $sfRecords['accountIdInvalido'] = true;
                 }
             } catch (\Exception $e) {
                 $this->integration->getLogger()->warn('AccountId incorrecto exception ' . $accountsalesforceid);
                 $accountsalesforceid = '';
+                $sfRecords['accountIdInvalido'] = true;
             }
         }
 
