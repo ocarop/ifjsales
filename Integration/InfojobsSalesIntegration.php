@@ -659,7 +659,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                         ]
                 );
 
-                if ($existingPersons[accountIdInvalido]){
+                if ($existingPersons['accountIdInvalido']){
                     //El account es invalido, por tanto lo borro 
                     //tanto de la variable como en los datos mapeados para contact
                     $accountsalesforceid='';
@@ -732,7 +732,7 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                         //Si no tiene Account vinculado, entonces se crea un nuevo Lead,
                         //Si tiene account, entrará en el siguiente if y crearemos como Contact, no como Lead
                         //TODO: consultar si tb creamos un Account, de momento no lo haremos
-                        $this->logger->warning("Crear lead " . $mappedData[$object]['Email']);
+                        $this->logger->warning("Crear lead " . $mappedData[$object]['create']['Email']);
                         //Los Lead no están vinculados a Account en salesforce
                         // por tanto no buscamos la compañia
                         $object='Lead';
