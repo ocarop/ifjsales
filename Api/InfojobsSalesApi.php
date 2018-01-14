@@ -190,12 +190,18 @@ class InfojobsSalesApi extends CrmApi {
                     // 100% - Contact -> Daremos por match 100% un contacto cuando: 
                     // Email + Phone + FirstName + LastName + MobilePhone + SegundoApellido
                     $this->integration->getLogger()->warn ('evaluando reglas de mathc registro de contact' . $record['FirstName']);
-                    if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                            $record['LastName'] == $data['Contact']['LastName'] &&
-                            $record['Email'] == $data['Contact']['Email'] &&
-                            $record['Phone'] == $data['Contact']['Phone'] &&
-                            $record['MobilePhone'] == $data['Contact']['MobilePhone'] &&
-                            $record['SegundoApellido__c'] == $data['Contact']['SegundoApellido']) {
+                    if (    isset($data['Contact']['Phone']) &&
+                            isset($data['Contact']['MobilePhone']) &&
+                            isset($data['Contact']['SegundoApellido__c']) &&
+                            $record['Phone']!=null &&
+                            $record['MobilePhone']!=null &&
+                            $record['SegundoApellido__c']!=null &&
+                            strcasecmp($record['FirstName'], $data['Contact']['FirstName']) == 0  &&
+                            strcasecmp($record['LastName'],$data['Contact']['LastName']) == 0 &&
+                            strcasecmp($record['Email'] , $data['Contact']['Email']) == 0 &&
+                            strcasecmp($record['Phone'] , $data['Contact']['Phone']) == 0 &&
+                            strcasecmp($record['MobilePhone'] , $data['Contact']['MobilePhone']) == 0 &&
+                            strcasecmp($record['SegundoApellido__c'] , $data['Contact']['SegundoApellido__c']) == 0) {
                         if (!$found) {
                             $this->integration->getLogger()->warn('match 100% Contact');
                             $sfRecords['Contact']['records'] = $record;
@@ -205,11 +211,15 @@ class InfojobsSalesApi extends CrmApi {
                     // 90% - Contact -> Daremos por match 90% un contacto cuando:
                     // Email + FirstName + LastName + MobilePhone + Phone                    
                     if (!$found) {
-                        if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                                $record['LastName'] == $data['Contact']['LastName'] &&
-                                $record['Email'] == $data['Contact']['LastName'] &&
-                                $record['Phone'] == $data['Contact']['Phone'] &&
-                                $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
+                        if (    isset($data['Contact']['Phone']) &&
+                                isset($data['Contact']['MobilePhone']) &&
+                                $record['Phone']!=null &&
+                                $record['MobilePhone']!=null &&
+                                strcasecmp($record['FirstName'] , $data['Contact']['FirstName']) == 0 &&
+                                strcasecmp($record['LastName'] , $data['Contact']['LastName']) == 0 &&
+                                strcasecmp($record['Email'] , $data['Contact']['Email']) == 0 &&
+                                strcasecmp($record['Phone'] , $data['Contact']['Phone']) == 0 &&
+                                strcasecmp($record['MobilePhone'] , $data['Contact']['MobilePhone']) == 0) {
                             $this->integration->getLogger()->warn('match 90% Contact');
                             $sfRecords['Contact']['records'] = $record;
                             $found = true;
@@ -218,9 +228,10 @@ class InfojobsSalesApi extends CrmApi {
                     // 50% - Contact -> Daremos por match 50% un contacto cuando:
                     // Email + FirstName + LastName
                     if (!$found) {
-                        if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                                $record['LastName'] == $data['Contact']['LastName'] &&
-                                $record['Email'] == $data['Contact']['Email']) {
+                        if (
+                                strcasecmp($record['FirstName'] , $data['Contact']['FirstName']) == 0 &&
+                                strcasecmp($record['LastName'] , $data['Contact']['LastName']) == 0 &&
+                                strcasecmp($record['Email'] , $data['Contact']['Email']) == 0) {
                             $this->integration->getLogger()->warn('match 50% Contact');
                             $sfRecords['Contact']['records'] = $record;
                             $found = true;
@@ -229,10 +240,15 @@ class InfojobsSalesApi extends CrmApi {
                     //30% - Contact -> Daremos por match 30% un contacto cuando:
                     // FirstName + LastName + MobilePhone + Phone
                     if (!$found) {
-                        if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                                $record['LastName'] == $data['Contact']['LastName'] &&
-                                $record['Phone'] == $data['Contact']['Phone'] &&
-                                $record['MobilePhone'] == $data['Contact']['MobilePhone']) {
+                        if (
+                                isset($data['Contact']['Phone']) &&
+                                isset($data['Contact']['MobilePhone']) &&
+                                $record['Phone']!=null &&
+                                $record['MobilePhone']!=null &&
+                                strcasecmp($record['FirstName'] , $data['Contact']['FirstName']) == 0 &&
+                                strcasecmp($record['LastName'] , $data['Contact']['LastName']) == 0 &&
+                                strcasecmp($record['Phone'] , $data['Contact']['Phone']) == 0 &&
+                                strcasecmp($record['MobilePhone'] , $data['Contact']['MobilePhone']) == 0) {
                             $this->integration->getLogger()->warn('match 30% Contact');
                             $sfRecords['Contact']['records'] = $record;
                             $found = true;
@@ -241,8 +257,8 @@ class InfojobsSalesApi extends CrmApi {
                     // Contact -> Daremos por match 20% un contacto cuando:
                     //FirstName + LastName
                     if (!$found) {
-                        if ($record['FirstName'] == $data['Contact']['FirstName'] &&
-                                $record['LastName'] == $data['Contact']['LastName']
+                        if (strcasecmp($record['FirstName'] , $data['Contact']['FirstName']) == 0 &&
+                                strcasecmp($record['LastName'] , $data['Contact']['LastName']) == 0
                         ) {
                             $this->integration->getLogger()->warn('match 20% Contact');
                             $sfRecords['Contact']['records'] = $record;
@@ -258,25 +274,31 @@ class InfojobsSalesApi extends CrmApi {
             // buscamos entre todos los lead activos y no convertidos
             // siempre que tenga nombre de company 
             if (!$found && $data['Lead']['Company'] != 'Unknown') {
-                $findLead = 'SELECT Id,Company,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
+                $findLead = 'SELECT Id,Company,identificadorFiscal__c,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
                         . ' and Company= \'' . $data['Lead']['Company'] . '\'';
                 $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
                 $this->integration->getLogger()->warn('Buscando lead ' . $data['Lead']['Company']);
                 foreach ($response['records'] as $record) {
-                    /* /* TODO: Revisar: Evaluar los criterios de matching
-                      Se busca el lead por -> Identificador Fiscal
-                     * 
-                     */
                     $this->integration->getLogger()->warn ('tratando registro de lead de resultados ' . $record['Company']);
+                    if (isset($data['Lead']['identificadorFiscal__c']) &&
+                            $record['identificadorFiscal__c']!=null &&
+                            strcasecmp($record['identificadorFiscal__c'] , $data['Lead']['identificadorFiscal__c']) == 0
+                    ) {
+                        $this->integration->getLogger()->warn('match Lead por identificadorFiscal__c');
+                        $sfRecords['Lead']['records'] = $record;
+                        $found = true;
+                    }
                     if (!$found) {
                         //Si no se encuentra un lead con ese Identificador Fiscal, entonces se busca por: Company + Email + Name + Phone
                         //TODO: comprobar que esta establecido cada campo
                         if (isset($data['Lead']['Company']) &&
-                                $record['Company'] == $data['Lead']['Company'] &&
-                                $record['FirstName'] == $data['Lead']['FirstName'] &&
-                                $record['LastName'] == $data['Lead']['LastName'] &&
-                                $record['Email'] == $data['Lead']['Email'] &&
-                                $record['Phone'] == $data['Lead']['Phone']
+                                isset($data['Lead']['Phone']) &&
+                                $record['Phone']!=null &&
+                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
+                                strcasecmp($record['FirstName'] , $data['Lead']['FirstName']) == 0 &&
+                                strcasecmp($record['LastName'] , $data['Lead']['LastName']) == 0 &&
+                                strcasecmp($record['Email'] , $data['Lead']['Email']) == 0 &&
+                                strcasecmp($record['Phone'] , $data['Lead']['Phone']) == 0
                         ) {
                             $this->integration->getLogger()->warn('match Lead por company+email+name+phone');
                             $sfRecords['Lead']['records'] = $record;
@@ -286,10 +308,10 @@ class InfojobsSalesApi extends CrmApi {
                     if (!$found) {
                         //Si no se encuentra un lead match 90%, entonces se busca por: Company + Email + Name
                         if (isset($data['Lead']['Company']) &&
-                                $record['Company'] == $data['Lead']['Company'] &&
-                                $record['FirstName'] == $data['Lead']['FirstName'] &&
-                                $record['LastName'] == $data['Lead']['LastName'] &&
-                                $record['Email'] == $data['Lead']['Email']
+                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
+                                strcasecmp($record['FirstName'] , $data['Lead']['FirstName']) == 0 &&
+                                strcasecmp($record['LastName'] , $data['Lead']['LastName']) == 0 &&
+                                strcasecmp($record['Email'] , $data['Lead']['Email']) == 0
                         ) {
                             $this->integration->getLogger()->warn('match Lead por company+mail+name');
                             $sfRecords['Lead']['records'] = $record;
@@ -299,8 +321,8 @@ class InfojobsSalesApi extends CrmApi {
                     if (!$found) {
                         //Si no se encuentra un lead match 80%, entonces se busca por: Company + Email
                         if (isset($data['Lead']['Company']) &&
-                                $record['Company'] == $data['Lead']['Company'] &&
-                                $record['Email'] == $data['Lead']['Email']
+                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
+                                strcasecmp($record['Email'] , $data['Lead']['Email']) == 0
                         ) {
                             $this->integration->getLogger()->warn('match Lead por company+email');
                             $sfRecords['Lead']['records'] = $record;
@@ -310,8 +332,8 @@ class InfojobsSalesApi extends CrmApi {
                     if (!$found) {
                         //Si no se encuentra un lead match 60%, entonces se busca por: Company + Phone
                         if (isset($data['Lead']['Company']) &&
-                                $record['Company'] == $data['Lead']['Company'] &&
-                                $record['Phone'] == $data['Lead']['Phone']
+                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
+                                strcasecmp($record['Phone'] , $data['Lead']['Phone']) == 0
                         ) {
                             $this->integration->getLogger()->warn('match Lead por company+phone');
                             $sfRecords['Lead']['records'] = $record;
@@ -321,7 +343,7 @@ class InfojobsSalesApi extends CrmApi {
                     if (!$found) {
                         //Si no se encuentra un lead match 50%, entonces se busca por: Company                   
                         if (isset($data['Lead']['Company']) &&
-                                $record['Company'] == $data['Lead']['Company']) {
+                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0) {
                             $this->integration->getLogger()->warn('match Lead por company');
                             $sfRecords['Lead']['records'] = $record;
                             $found = true;
