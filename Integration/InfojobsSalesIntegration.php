@@ -668,6 +668,8 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                 //Poner siempre el flag Integracion_Mautic__c
                 $mappedData['Contact']['create']['Integracion_Mautic__c'] = true;
                 $mappedData['Lead']['create']['Integracion_Mautic__c'] = true;
+                $mappedData['Contact']['update']['Integracion_Mautic__c'] = true;
+                $mappedData['Lead']['update']['Integracion_Mautic__c'] = true;
 
                 $personFound = false;
                 $people = [
