@@ -710,6 +710,45 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                                 $this->logger->warning('update en salesforce ' . $object . ' id ' . $person['Id']); 
                                 //guardar el tipo de object actualizado
                                 $updatedObject=$object;
+                                if (isset($fieldsToUpdate['Phone'])){
+                                    //Si hay telefono, comprobar si es correcto
+                                    if (preg_match('"^[0-9]{6,12}$"', $fieldsToUpdate['Phone'])==1){
+                                        //Si es correcto, comprobar tb el prefijo
+                                        if (isset($fieldsToUpdate['Prefijo__c'])){
+                                            if (preg_match('"[+]\\d{1,3}"', $fieldsToUpdate['Prefijo__c'])==1){
+                                                //telefono y prefijo correctos
+                                            }
+                                            else{
+                                                $fieldsToUpdate['telefono_a_revisar__c']= $fieldsToUpdate['Prefijo__c'] . ' ' . $fieldsToUpdate['Phone'];
+                                                unset($fieldsToUpdate['Prefijo__c']);
+                                                unset($fieldsToUpdate['Phone']);
+                                            }
+                                        }
+                                        else{
+                                            //Telefono correcto y no hay prefijo
+                                        }
+                                    }
+                                    else{
+                                        //Si es incorrecto, pasarlo a telefono_a_revisar
+                                        if (isset($fieldsToUpdate['Prefijo__c'])){
+                                            $fieldsToUpdate['telefono_a_revisar__c']= $fieldsToUpdate['Prefijo__c'] . ' ' . $fieldsToUpdate['Phone'];
+                                            unset($fieldsToUpdate['Phone']);
+                                        }
+                                        else{
+                                            $fieldsToUpdate['telefono_a_revisar__c']= $fieldsToUpdate['Phone'];
+                                        }    
+                                        unset($fieldsToUpdate['Phone']);
+                                    }                                
+                                }
+                                if (isset($fieldsToUpdate['MobilePhone'])){
+                                    if (preg_match('"^[0-9]{9,12}$"', $fieldsToUpdate['MobilePhone'])==1){
+                                        //telefono y prefijo correctos
+                                        }
+                                    else{
+                                        $fieldsToUpdate['telefono_a_revisar__c']= $fieldsToUpdate['MobilePhone'];
+                                        unset($fieldsToUpdate['MobilePhone']);
+                                    }                        
+                                }                                 
                                 $personData = $this->getApiHelper()->updateObject($fieldsToUpdate, $object, $person['Id']);
                                 $people[$object][$person['Id']] = $person['Id'];
                             }
@@ -739,6 +778,37 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                         // por tanto no buscamos la compañia
                         $object='Lead';
                         unset($mappedData['Lead']['create']['parentaccountsalesforceid']);
+                        if (isset($mappedData['Lead']['create']['Phone'])){
+                            //Si hay telefono, comprobar si es correcto
+                            if (preg_match('"^[0-9]{6,12}$"', $mappedData['Lead']['create']['Phone'])==1){
+                                //Si es correcto, comprobar tb el prefijo
+                                if (isset($mappedData['Lead']['create']['Prefijo__c'])){
+                                    if (preg_match('"[+]\\d{1,3}"', $mappedData['Lead']['create']['Prefijo__c'])==1){
+                                        //telefono y prefijo correctos
+                                    }
+                                    else{
+                                        $mappedData['Lead']['create']['telefono_a_revisar__c']= $mappedData['Lead']['create']['Prefijo__c'] . ' ' . $mappedData['Lead']['create']['Phone'];
+                                        unset($mappedData['Lead']['create']['Prefijo__c']);
+                                        unset($mappedData['Lead']['create']['Phone']);
+                                    }
+                                }
+                                else{
+                                    //Telefono correcto y no hay prefijo
+                                }
+                            }
+                            else{
+                                //Si es incorrecto, pasarlo a telefono_a_revisar
+                                if (isset($mappedData['Lead']['create']['Prefijo__c'])){
+                                    $mappedData['Lead']['create']['telefono_a_revisar__c']= $mappedData['Lead']['create']['Prefijo__c'] . ' ' . $mappedData['Lead']['create']['Phone'];
+                                    unset($mappedData['Lead']['create']['Prefijo__c']);                                    
+                                }
+                                else{
+                                    $mappedData['Lead']['create']['telefono_a_revisar__c']= $mappedData['Lead']['create']['Phone'];                                
+                                }
+                                unset($mappedData['Lead']['create']['Phone']);
+                            }                                
+                        }
+                            
                         $personData = $this->getApiHelper()->createLead($mappedData['Lead']['create']);
                         $people[$object][$personData['Id']] = $personData['Id'];
                         $personFound = true;
@@ -749,6 +819,39 @@ class InfojobsSalesIntegration extends CrmAbstractIntegration {
                         unset($mappedData['Contact']['create']['parentaccountsalesforceid']);
                         $this->logger->warning("Crear Contact " . $mappedData['Contact']['create']['Email']);
                         //En este punto AccountId tiene la FK de Account
+                        //Si hay telefono, comprobar si es correcto
+                        if (isset($mappedData['Contact']['create']['Phone'])){
+                            if (preg_match('"^[0-9]{6,12}$"', $mappedData['Contact']['create']['Phone'])==1){
+                                //Si es correcto, comprobar tb el prefijo
+                                if (isset($mappedData['Contact']['create']['Prefijo__c'])){
+                                    if (preg_match('"[+]\\d{1,3}"', $mappedData['Contact']['create']['Prefijo__c'])==1){
+                                        //telefono y prefijo correctos
+                                    }
+                                    else{
+                                        $mappedData['Contact']['create']['telefono_a_revisar__c']= $mappedData['Contact']['create']['Prefijo__c'] . ' ' . $mappedData['Contact']['create']['Phone'];
+                                        unset($mappedData['Contact']['create']['Prefijo__c']);
+                                        unset($mappedData['Contact']['create']['Phone']);
+                                    }
+                                }
+                                else{
+                                    //Telefono correcto y no hay prefijo
+                                }
+                            }
+                            else{
+                                //Si es incorrecto, pasarlo a telefono_a_revisar
+                                $mappedData['Contact']['create']['telefono_a_revisar__c']= $mappedData['Contact']['create']['Phone'];
+                                unset($mappedData['Contact']['create']['Phone']);
+                            }                                
+                        }
+                        if (isset($mappedData['Contact']['create']['MobilePhone'])){
+                            if (preg_match('"^[0-9]{9,12}$"', $mappedData['Contact']['create']['MobilePhone'])==1){
+                                //telefono y prefijo correctos
+                                }
+                            else{
+                                $mappedData['Contact']['create']['telefono_a_revisar__c']= $mappedData['Contact']['create']['MobilePhone'];
+                                unset($mappedData['Contact']['create']['MobilePhone']);
+                            }                        
+                        }                        
                         $personData = $this->getApiHelper()->createObject($mappedData['Contact']['create'], 'Contact');
                         $people[$object][$personData['Id']] = $personData['Id'];
                         $personFound = true;

@@ -273,84 +273,98 @@ class InfojobsSalesApi extends CrmApi {
             //Si no lo hemos encontrado como contacto de esa Account,
             // buscamos entre todos los lead activos y no convertidos
             // siempre que tenga nombre de company 
-            if (!$found && $data['Lead']['Company'] != 'Unknown') {
-                $findLead = 'SELECT Id,Company,identificadorFiscal__c,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
-                        . ' and Company= \'' . $data['Lead']['Company'] . '\'';
-                $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
-                $this->integration->getLogger()->warn('Buscando lead ' . $data['Lead']['Company']);
-                foreach ($response['records'] as $record) {
-                    $this->integration->getLogger()->warn ('tratando registro de lead de resultados ' . $record['Company']);
-                    if (isset($data['Lead']['identificadorFiscal__c']) &&
-                            $record['identificadorFiscal__c']!=null &&
-                            strcasecmp($record['identificadorFiscal__c'] , $data['Lead']['identificadorFiscal__c']) == 0
-                    ) {
-                        $this->integration->getLogger()->warn('match Lead por identificadorFiscal__c');
-                        $sfRecords['Lead']['records'] = $record;
-                        $found = true;
-                    }
-                    if (!$found) {
-                        //Si no se encuentra un lead con ese Identificador Fiscal, entonces se busca por: Company + Email + Name + Phone
-                        //TODO: comprobar que esta establecido cada campo
-                        if (isset($data['Lead']['Company']) &&
-                                isset($data['Lead']['Phone']) &&
-                                $record['Phone']!=null &&
-                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
-                                strcasecmp($record['FirstName'] , $data['Lead']['FirstName']) == 0 &&
-                                strcasecmp($record['LastName'] , $data['Lead']['LastName']) == 0 &&
-                                strcasecmp($record['Email'] , $data['Lead']['Email']) == 0 &&
-                                strcasecmp($record['Phone'] , $data['Lead']['Phone']) == 0
+            // de venir sin company solo buscamos por nif
+            if (!$found){
+                if ($data['Lead']['Company'] != 'Unknown' && $data['Lead']['Company'] != 'Desconocido') {
+                    $findLead = 'SELECT Id,Company,identificadorFiscal__c,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
+                            . ' and Company= \'' . $data['Lead']['Company'] . '\'';
+                    $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
+                    $this->integration->getLogger()->warn('Buscando lead ' . $data['Lead']['Company']);
+                    foreach ($response['records'] as $record) {
+                        $this->integration->getLogger()->warn ('tratando registro de lead de resultados ' . $record['Company']);
+                        if (isset($data['Lead']['identificadorFiscal__c']) &&
+                                $record['identificadorFiscal__c']!=null &&
+                                strcasecmp($record['identificadorFiscal__c'] , $data['Lead']['identificadorFiscal__c']) == 0
                         ) {
-                            $this->integration->getLogger()->warn('match Lead por company+email+name+phone');
+                            $this->integration->getLogger()->warn('match Lead por identificadorFiscal__c');
                             $sfRecords['Lead']['records'] = $record;
                             $found = true;
                         }
-                    }
-                    if (!$found) {
-                        //Si no se encuentra un lead match 90%, entonces se busca por: Company + Email + Name
-                        if (isset($data['Lead']['Company']) &&
-                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
-                                strcasecmp($record['FirstName'] , $data['Lead']['FirstName']) == 0 &&
-                                strcasecmp($record['LastName'] , $data['Lead']['LastName']) == 0 &&
-                                strcasecmp($record['Email'] , $data['Lead']['Email']) == 0
-                        ) {
-                            $this->integration->getLogger()->warn('match Lead por company+mail+name');
-                            $sfRecords['Lead']['records'] = $record;
-                            $found = true;
+                        if (!$found) {
+                            //Si no se encuentra un lead con ese Identificador Fiscal, entonces se busca por: Company + Email + Name + Phone
+                            //TODO: comprobar que esta establecido cada campo
+                            if (isset($data['Lead']['Company']) &&
+                                    isset($data['Lead']['Phone']) &&
+                                    $record['Phone']!=null &&
+                                    strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
+                                    strcasecmp($record['FirstName'] , $data['Lead']['FirstName']) == 0 &&
+                                    strcasecmp($record['LastName'] , $data['Lead']['LastName']) == 0 &&
+                                    strcasecmp($record['Email'] , $data['Lead']['Email']) == 0 &&
+                                    strcasecmp($record['Phone'] , $data['Lead']['Phone']) == 0
+                            ) {
+                                $this->integration->getLogger()->warn('match Lead por company+email+name+phone');
+                                $sfRecords['Lead']['records'] = $record;
+                                $found = true;
+                            }
                         }
-                    }
-                    if (!$found) {
-                        //Si no se encuentra un lead match 80%, entonces se busca por: Company + Email
-                        if (isset($data['Lead']['Company']) &&
-                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
-                                strcasecmp($record['Email'] , $data['Lead']['Email']) == 0
-                        ) {
-                            $this->integration->getLogger()->warn('match Lead por company+email');
-                            $sfRecords['Lead']['records'] = $record;
-                            $found = true;
+                        if (!$found) {
+                            //Si no se encuentra un lead match 90%, entonces se busca por: Company + Email + Name
+                            if (isset($data['Lead']['Company']) &&
+                                    strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
+                                    strcasecmp($record['FirstName'] , $data['Lead']['FirstName']) == 0 &&
+                                    strcasecmp($record['LastName'] , $data['Lead']['LastName']) == 0 &&
+                                    strcasecmp($record['Email'] , $data['Lead']['Email']) == 0
+                            ) {
+                                $this->integration->getLogger()->warn('match Lead por company+mail+name');
+                                $sfRecords['Lead']['records'] = $record;
+                                $found = true;
+                            }
                         }
-                    }
-                    if (!$found) {
-                        //Si no se encuentra un lead match 60%, entonces se busca por: Company + Phone
-                        if (isset($data['Lead']['Company']) &&
-                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
-                                strcasecmp($record['Phone'] , $data['Lead']['Phone']) == 0
-                        ) {
-                            $this->integration->getLogger()->warn('match Lead por company+phone');
-                            $sfRecords['Lead']['records'] = $record;
-                            $found = true;
+                        if (!$found) {
+                            //Si no se encuentra un lead match 80%, entonces se busca por: Company + Email
+                            if (isset($data['Lead']['Company']) &&
+                                    strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
+                                    strcasecmp($record['Email'] , $data['Lead']['Email']) == 0
+                            ) {
+                                $this->integration->getLogger()->warn('match Lead por company+email');
+                                $sfRecords['Lead']['records'] = $record;
+                                $found = true;
+                            }
                         }
-                    }
-                    if (!$found) {
-                        //Si no se encuentra un lead match 50%, entonces se busca por: Company                   
-                        if (isset($data['Lead']['Company']) &&
-                                strcasecmp($record['Company'] , $data['Lead']['Company']) == 0) {
-                            $this->integration->getLogger()->warn('match Lead por company');
-                            $sfRecords['Lead']['records'] = $record;
-                            $found = true;
+                        if (!$found) {
+                            //Si no se encuentra un lead match 60%, entonces se busca por: Company + Phone
+                            if (isset($data['Lead']['Company']) &&
+                                    strcasecmp($record['Company'] , $data['Lead']['Company']) == 0 &&
+                                    strcasecmp($record['Phone'] , $data['Lead']['Phone']) == 0
+                            ) {
+                                $this->integration->getLogger()->warn('match Lead por company+phone');
+                                $sfRecords['Lead']['records'] = $record;
+                                $found = true;
+                            }
+                        }
+                        if (!$found) {
+                            //Si no se encuentra un lead match 50%, entonces se busca por: Company                   
+                            if (isset($data['Lead']['Company']) &&
+                                    strcasecmp($record['Company'] , $data['Lead']['Company']) == 0) {
+                                $this->integration->getLogger()->warn('match Lead por company');
+                                $sfRecords['Lead']['records'] = $record;
+                                $found = true;
+                            }
                         }
                     }
                 }
-            }
+                else{
+                    //No viene nombre de compañia, buscamos por nif
+                    $findLead = 'SELECT Id,Company,identificadorFiscal__c,FirstName,LastName,Email,Phone FROM Lead where IsConverted=false and Status=\'Activo\' and IsDeleted=false'
+                            . ' and identificadorFiscal__c= \'' . $data['Lead']['identificadorFiscal__c'] . '\'';
+                    $response = $this->request('query', ['q' => $findLead], 'GET', false, null, $queryUrl);
+                    $this->integration->getLogger()->warn('Buscando lead por nif ' . $data['Lead']['identificadorFiscal__c']);
+                    foreach ($response['records'] as $record) {
+                        $this->integration->getLogger()->warn('match Lead por identificadorFiscal__c');
+                        $sfRecords['Lead']['records'] = $record;
+                    }
+                }
+            }    
         }    
         /* try searching for lead as this has been changed before in updated done to the plugin
           if (isset($config['objects']) && false !== array_search('Contact', $config['objects']) && !empty($data['Contact']['Email'])) {
